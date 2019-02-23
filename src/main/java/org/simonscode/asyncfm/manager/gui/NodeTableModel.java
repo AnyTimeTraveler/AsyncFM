@@ -1,5 +1,6 @@
 package org.simonscode.asyncfm.manager.gui;
 
+import org.simonscode.asyncfm.common.FileNode;
 import org.simonscode.asyncfm.common.Node;
 import org.simonscode.asyncfm.manager.Manager;
 
@@ -32,13 +33,13 @@ class NodeTableModel extends AbstractTableModel {
         Node file = nodes[row];
         switch (column) {
             case 0:
-                return null;
+                return file.isDirectory() ? FileManager.folderClosedIcon : FileManager.fileIcon;
             case 1:
                 return file.getName();
             case 2:
                 return Manager.humanReadableByteCount(file.getSize(), true);
             case 3:
-                return Long.toHexString(file.getHash());
+                return file.isDirectory() ? "" : Long.toHexString(((FileNode) file).getHash());
             case 4:
                 return file.countChildren();
             default:

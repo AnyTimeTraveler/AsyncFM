@@ -1,34 +1,38 @@
 package org.simonscode.asyncfm.manager;
 
 import org.simonscode.asyncfm.common.Node;
-import org.simonscode.asyncfm.common.RootNode;
 import org.simonscode.asyncfm.manager.gui.FileManager;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Comparator;
 import java.util.List;
 
 public class Manager {
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        System.out.print("Reading file...");
-        ObjectInputStream ois = new ObjectInputStream(new FileInputStream("result.struct"));
-        RootNode root = (RootNode) ois.readObject();
-        System.out.println("Done!");
+    public static void main(String[] args) {
 
-        System.out.print("Restoring heritage...");
-        root.restoreParents(null);
-        System.out.println("Done!");
-
-        System.out.printf("%nChildren: %s%n", root.countChildren());
-        List<Node> nodes = root.getChildren();
-        nodes.sort(Comparator.comparing(Node::getName));
-        for (Node n : nodes) {
-            System.out.printf("%-30s %8s%n", n.getName(), humanReadableByteCount(n.getAbsoluteSize(), true));
+        if (args.length != 1) {
+            System.err.println("Arguments: <input file>");
+            return;
         }
-        FileManager fileManager = new FileManager(root);
-        fileManager.createAndShowGui();
+
+        System.out.print("Reading file...");
+        try (FileInputStream fis = new FileInputStream(args[0])) {
+            StructWalker walker = new StructWalker(fis);
+            Node root = walker.readTree();
+            System.out.println("Done!");
+
+            System.out.printf("%n%s Files loaded.", root.countChildren());
+            List<Node> nodes = root.getChildren();
+            nodes.sort(Comparator.comparing(Node::getName));
+//            for (Node n : nodes) {
+//                System.out.printf("%-30s %8s%n", n.getName(), humanReadableByteCount(n.getAbsoluteSize(), true));
+//            }
+            FileManager fileManager = new FileManager(root);
+            fileManager.createAndShowGui();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -36,7 +40,7 @@ public class Manager {
         int unit = si ? 1000 : 1024;
         if (bytes < unit) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }

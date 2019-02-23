@@ -1,24 +1,7 @@
 package org.simonscode.asyncfm.manager.gui;
-/*
- * $Id$
- *
- * Copyright 2015 Valentyn Kolesnikov
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
+import org.simonscode.asyncfm.common.FileNode;
 import org.simonscode.asyncfm.common.Node;
-import org.simonscode.asyncfm.common.RootNode;
 import org.simonscode.asyncfm.manager.Manager;
 
 import javax.imageio.ImageIO;
@@ -34,48 +17,13 @@ import java.awt.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-/**
- * A basic Node Manager.  Requires 1.6+ for the Desktop &amp; SwingWorker
- * classes, amongst other minor things.
- * <p>
- * Includes support classes NodeTableModel &amp; NodeTreeCellRenderer.
- * <p>
- * TODO Bugs
- * <ul>
- * <li>Still throws occasional AIOOBEs and NPEs, so some update on
- * the EDT must have been missed.
- * <li>Fix keyboard focus issues - especially when functions like
- * rename/delete etc. are called that update nodes &amp; file lists.
- * <li>Needs more testing in general.
- * <p>
- * TODO Functionality
- * <li>Implement Read/Write/Execute checkboxes
- * <li>Implement Copy
- * <li>Extra prompt for directory delete (camickr suggestion)
- * <li>Add Node/Directory fields to NodeTableModel
- * <li>Double clicking a directory in the table, should update the tree
- * <li>Move progress bar?
- * <li>Add other file display modes (besides table) in CardLayout?
- * <li>Menus + other cruft?
- * <li>Implement history/back
- * <li>Allow multiple selection
- * <li>Add file search
- * </ul>
- *
- * @author Andrew Thompson
- * @version 2011-06-01
- */
 public class FileManager {
 
-    /**
-     * currently selected Node.
-     */
-    private final RootNode rootNode;
-    /**
-     * currently selected Node.
-     */
-    private Node currentFile;
+    /* Icons */
+    public static ImageIcon fileIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("icons/16px/file-solid.png")));
+    public static ImageIcon folderOpenIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("icons/16px/folder-open-solid.png")));
 
     /**
      * Main GUI container
@@ -101,6 +49,15 @@ public class FileManager {
     private boolean cellSizesSet = false;
     private int rowIconPadding = 6;
     private final String APP_TITLE = "AsyncFM";
+    public static ImageIcon folderClosedIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("icons/16px/folder-solid.png")));
+    /**
+     * root node.
+     */
+    private final Node rootNode;
+    /**
+     * currently selected node.
+     */
+    private Node currentNode;
 
     /* Node controls. */
     private JButton openFile;
@@ -109,18 +66,15 @@ public class FileManager {
     private JButton copyFile;
     private JButton moveFile;
     private JButton deleteFile;
+
     /* Node details. */
     private JLabel fileName;
     private JTextField path;
     private JLabel absoluteSize;
     private JLabel ownSize;
+    private JLabel hash;
 
-    /* GUI options/containers for new Node/Directory creation.  Created lazily. */
-    private JPanel newFilePanel;
-    private JRadioButton newTypeFile;
-    private JTextField name;
-
-    public FileManager(RootNode rootNode) {
+    public FileManager(Node rootNode) {
         this.rootNode = rootNode;
     }
 
@@ -130,7 +84,6 @@ public class FileManager {
             gui.setBorder(new EmptyBorder(5, 5, 5, 5));
 
             JPanel detailView = new JPanel(new BorderLayout(3, 3));
-            //fileTableModel = new NodeTableModel();
 
             table = new JTable();
             table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -141,6 +94,7 @@ public class FileManager {
                 int row = table.getSelectionModel().getLeadSelectionIndex();
                 setFileDetails(((NodeTableModel) table.getModel()).getFile(row));
             };
+
             table.getSelectionModel().addListSelectionListener(listSelectionListener);
             JScrollPane tableScroll = new JScrollPane(table);
             Dimension d = tableScroll.getPreferredSize();
@@ -195,11 +149,11 @@ public class FileManager {
             JPanel fileDetailsValues = new JPanel(new GridLayout(0, 1, 2, 2));
             fileMainDetails.add(fileDetailsValues, BorderLayout.CENTER);
 
-            fileDetailsLabels.add(new JLabel("Node", JLabel.TRAILING));
+            fileDetailsLabels.add(new JLabel("Name", JLabel.TRAILING));
             fileName = new JLabel();
             fileDetailsValues.add(fileName);
 
-            fileDetailsLabels.add(new JLabel("Path/name", JLabel.TRAILING));
+            fileDetailsLabels.add(new JLabel("Path", JLabel.TRAILING));
             path = new JTextField(5);
             path.setEditable(false);
             fileDetailsValues.add(path);
@@ -211,6 +165,10 @@ public class FileManager {
             fileDetailsLabels.add(new JLabel("Node size", JLabel.TRAILING));
             ownSize = new JLabel();
             fileDetailsValues.add(ownSize);
+
+            fileDetailsLabels.add(new JLabel("Hash", JLabel.TRAILING));
+            hash = new JLabel();
+            fileDetailsValues.add(hash);
 
 
             int count = fileDetailsLabels.getComponentCount();
@@ -298,7 +256,7 @@ public class FileManager {
     }
 
     private void renameFile() {
-        if (currentFile == null) {
+        if (currentNode == null) {
             showErrorMessage("No file selected to rename.", "Select Node");
             return;
         }
@@ -306,11 +264,11 @@ public class FileManager {
         String renameTo = JOptionPane.showInputDialog(gui, "New Name");
         if (renameTo != null) {
             try {
-                boolean directory = currentFile.isDirectory();
-                TreePath parentPath = findTreePath(currentFile.getParent());
+                boolean directory = currentNode.isDirectory();
+                TreePath parentPath = findTreePath(currentNode.getParent());
                 DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) parentPath.getLastPathComponent();
 
-//                boolean renamed = currentFile.renameTo(new Node(currentFile.getParentFile(), renameTo));
+//                boolean renamed = currentNode.renameTo(new Node(currentNode.getParentFile(), renameTo));
                 boolean renamed = false;
                 //TODO: Implement rename!
                 //noinspection ConstantConditions
@@ -318,7 +276,7 @@ public class FileManager {
                     updateTree(directory, parentNode);
                 } else {
                     String msg = "The file '" +
-                            currentFile +
+                            currentNode +
                             "' could not be renamed.";
                     showErrorMessage(msg, "Rename Failed");
                 }
@@ -334,7 +292,7 @@ public class FileManager {
             // rename the node..
 
             // delete the current node..
-            TreePath currentPath = findTreePath(currentFile);
+            TreePath currentPath = findTreePath(currentNode);
             System.out.println(currentPath);
             DefaultMutableTreeNode currentNode = (DefaultMutableTreeNode) currentPath.getLastPathComponent();
 
@@ -347,7 +305,7 @@ public class FileManager {
     }
 
     private void deleteFile() {
-        if (currentFile == null) {
+        if (currentNode == null) {
             showErrorMessage("No file selected for deletion.", "Select Node");
             return;
         }
@@ -360,22 +318,22 @@ public class FileManager {
         );
         if (result == JOptionPane.YES_OPTION) {
             try {
-                System.out.println("currentFile: " + currentFile);
-                TreePath parentPath = findTreePath(currentFile.getParent());
+                System.out.println("currentNode: " + currentNode);
+                TreePath parentPath = findTreePath(currentNode.getParent());
                 System.out.println("parentPath: " + parentPath);
                 DefaultMutableTreeNode parentNode =
                         (DefaultMutableTreeNode) parentPath.getLastPathComponent();
                 System.out.println("parentNode: " + parentNode);
 
-                boolean directory = currentFile.isDirectory();
-//                boolean deleted = currentFile.delete();
+                boolean directory = currentNode.isDirectory();
+//                boolean deleted = currentNode.delete();
                 boolean deleted = false;
                 // TODO: Implement delete!
                 if (deleted) {
                     updateTree(directory, parentNode);
                 } else {
                     String msg = "The file '" +
-                            currentFile +
+                            currentNode +
                             "' could not be deleted.";
                     showErrorMessage(msg, "Delete Failed");
                 }
@@ -419,20 +377,16 @@ public class FileManager {
             fileTableModel.setNodes(files);
             table.getSelectionModel().addListSelectionListener(listSelectionListener);
             if (!cellSizesSet) {
-                Icon icon = null; // TODO: Icon!
-
+                Icon icon = fileIcon;
                 // ownSize adjustment to better account for icons
                 table.setRowHeight(icon.getIconHeight() + rowIconPadding);
+
+                System.out.println(table.getRowHeight());
 
                 setColumnWidth(0, -1);
                 setColumnWidth(3, 60);
                 table.getColumnModel().getColumn(3).setMaxWidth(120);
                 setColumnWidth(4, -1);
-                setColumnWidth(5, -1);
-                setColumnWidth(6, -1);
-                setColumnWidth(7, -1);
-                setColumnWidth(8, -1);
-                setColumnWidth(9, -1);
 
                 cellSizesSet = true;
             }
@@ -501,13 +455,14 @@ public class FileManager {
      * Update the Node details view with the details of this Node.
      */
     private void setFileDetails(Node file) {
-        currentFile = file;
-        Icon icon = null; //TODO: Icon!
+        currentNode = file;
+        Icon icon = file.isDirectory() ? folderClosedIcon : fileIcon;
         fileName.setIcon(icon);
         fileName.setText(file.getName());
         path.setText(file.getPath());
         absoluteSize.setText(Manager.humanReadableByteCount(file.getAbsoluteSize(), true));
         ownSize.setText(Manager.humanReadableByteCount(file.getSize(), true));
+        hash.setText(file.isDirectory() ? "" : Long.toHexString(((FileNode) file).getHash()));
 
         JFrame f = (JFrame) gui.getTopLevelAncestor();
         if (f != null) {
