@@ -24,8 +24,13 @@ public class Scanner {
             System.exit(0);
         }
         timer.scheduleAtFixedRate(new TimerTask() {
+            private int last;
+
             @Override
             public void run() {
+                if (last == FileCounter.get())
+                    return;
+                last = FileCounter.get();
                 System.out.printf("Current progress: %d : %s%n", FileCounter.get(), FileString);
             }
         }, 200, 200);

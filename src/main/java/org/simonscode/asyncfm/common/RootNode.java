@@ -6,7 +6,7 @@ public class RootNode extends Node {
     private final long freeSpace;
 
     public RootNode(File file) {
-        super(file);
+        super(null, file);
         freeSpace = file.getFreeSpace();
     }
 }

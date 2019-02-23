@@ -2,6 +2,7 @@ package org.simonscode.asyncfm.manager;
 
 import org.simonscode.asyncfm.common.Node;
 import org.simonscode.asyncfm.common.RootNode;
+import org.simonscode.asyncfm.manager.gui.FileManager;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,12 +17,18 @@ public class Manager {
         RootNode root = (RootNode) ois.readObject();
         System.out.println("Done!");
 
+        System.out.print("Restoring heritage...");
+        root.restoreParents(null);
+        System.out.println("Done!");
+
         System.out.printf("%nChildren: %s%n", root.countChildren());
         List<Node> nodes = root.getChildren();
         nodes.sort(Comparator.comparing(Node::getName));
         for (Node n : nodes) {
-            System.out.printf("%-30s %8s%n", n.getName(), humanReadableByteCount(n.getSize(), true));
+            System.out.printf("%-30s %8s%n", n.getName(), humanReadableByteCount(n.getAbsoluteSize(), true));
         }
+        FileManager fileManager = new FileManager(root);
+        fileManager.createAndShowGui();
     }
 
 

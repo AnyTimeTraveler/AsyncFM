@@ -11,7 +11,7 @@ sourceCompatibility = 1.8
 jar {
     jar {
         manifest {
-            attributes 'Main-Class': 'org.simonscode.asyncfm.Scanner'
+            attributes 'Main-Class': 'org.simonscode.asyncfm.scanner.Scanner'
         }
     }
 }
