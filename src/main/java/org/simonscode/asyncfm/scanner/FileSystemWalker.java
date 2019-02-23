@@ -23,7 +23,7 @@ public class FileSystemWalker {
 
     public void walk(String path) throws IOException {
         File root = new File(path);
-        recursiveWalk(writeFile(0L, root), root);
+        recursiveWalk(writeFile(0L, root, root.getAbsolutePath()), root);
     }
 
     private void recursiveWalk(long id, File file) throws IOException {
@@ -47,10 +47,14 @@ public class FileSystemWalker {
     }
 
     private long writeFile(long parentId, File file) throws IOException {
-        byte[] name = file.getName().getBytes(Charset.forName("UTF-8"));
+        return writeFile(parentId, file, file.getName());
+    }
+
+    private long writeFile(long parentId, File file, String name) throws IOException {
+        byte[] nameBytes = name.getBytes(Charset.forName("UTF-8"));
         dos.writeLong(parentId);
-        dos.writeInt(name.length);
-        dos.write(name);
+        dos.writeInt(nameBytes.length);
+        dos.write(nameBytes);
         dos.writeBoolean(!file.isDirectory());
         if (!file.isDirectory()) {
             dos.writeLong(file.length());
