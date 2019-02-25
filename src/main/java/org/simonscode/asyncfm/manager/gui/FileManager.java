@@ -1,6 +1,5 @@
 package org.simonscode.asyncfm.manager.gui;
 
-import org.simonscode.asyncfm.common.FileNode;
 import org.simonscode.asyncfm.common.Node;
 import org.simonscode.asyncfm.manager.Manager;
 
@@ -21,19 +20,13 @@ import java.util.Objects;
 
 public class FileManager {
 
-    /* Icons */
-    public static ImageIcon fileIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("icons/16px/file-solid.png")));
-    public static ImageIcon folderOpenIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("icons/16px/folder-open-solid.png")));
-
     /**
      * Main GUI container
      */
     private JPanel gui;
 
-    /**
-     * Node-system tree. Built Lazily
-     */
-    private JTree tree;
+    /* Icons */
+    public static ImageIcon fileIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemResource("icons/16px/file-solid.png")));
     private DefaultTreeModel treeModel;
 
     /**
@@ -41,15 +34,20 @@ public class FileManager {
      */
     private JTable table;
     private JProgressBar progressBar;
-    /**
-     * Table model for Node[].
-     */
-    private NodeTableModel fileTableModel;
+    public static ImageIcon folderOpenIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemResource("icons/16px/folder-open-solid.png")));
     private ListSelectionListener listSelectionListener;
     private boolean cellSizesSet = false;
     private int rowIconPadding = 6;
     private final String APP_TITLE = "AsyncFM";
-    public static ImageIcon folderClosedIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("icons/16px/folder-solid.png")));
+    public static ImageIcon folderClosedIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemResource("icons/16px/folder-solid.png")));
+    /**
+     * File-system tree.
+     */
+    private JTree tree;
+    /**
+     * Table model for Nodes.
+     */
+    private NodeTableModel fileTableModel;
     /**
      * root node.
      */
@@ -102,26 +100,15 @@ public class FileManager {
             detailView.add(tableScroll, BorderLayout.CENTER);
 
             // the Node tree
-            DefaultMutableTreeNode root = new DefaultMutableTreeNode();
+            Node root = new Node(0L, null, "/");
+            root.addChild(rootNode);
             treeModel = new DefaultTreeModel(root);
 
             TreeSelectionListener treeSelectionListener = tse -> {
-                DefaultMutableTreeNode node =
-                        (DefaultMutableTreeNode) tse.getPath().getLastPathComponent();
-                showChildren(node);
-                setFileDetails((Node) node.getUserObject());
+                Node node = (Node) tse.getPath().getLastPathComponent();
+                showChildrenInTable(node);
+                setFileDetails(node);
             };
-
-            // show the file system root.
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode(rootNode);
-            root.add(node);
-
-            List<Node> files = rootNode.getChildren();
-            for (Node file : files) {
-                if (file.isDirectory()) {
-                    node.add(new DefaultMutableTreeNode(file));
-                }
-            }
 
             tree = new JTree(treeModel);
             tree.setRootVisible(false);
@@ -195,8 +182,6 @@ public class FileManager {
             deduplicateFile.addActionListener(ae -> showErrorMessage("'Deduplicate' not implemented.", "Not implemented."));
             toolBar.add(deduplicateFile);
 
-            toolBar.addSeparator();
-
             copyFile = new JButton("Copy");
             copyFile.setMnemonic('c');
             copyFile.addActionListener(ae -> showErrorMessage("'Copy' not implemented.", "Not implemented."));
@@ -204,12 +189,12 @@ public class FileManager {
 
             renameFile = new JButton("Rename");
             renameFile.setMnemonic('r');
-            renameFile.addActionListener(ae -> renameFile());
+            renameFile.addActionListener(ae -> showErrorMessage("'Rename' not implemented.", "Not implemented."));
             toolBar.add(renameFile);
 
             deleteFile = new JButton("Delete");
             deleteFile.setMnemonic('d');
-            deleteFile.addActionListener(ae -> deleteFile());
+            deleteFile.addActionListener(ae -> showErrorMessage("'Delete' not implemented.", "Not implemented."));
             toolBar.add(deleteFile);
 
             JPanel fileView = new JPanel(new BorderLayout(3, 3));
@@ -235,6 +220,30 @@ public class FileManager {
         return gui;
     }
 
+    private void setTableData(final List<Node> files) {
+        SwingUtilities.invokeLater(() -> {
+            if (fileTableModel == null) {
+                fileTableModel = new NodeTableModel();
+                table.setModel(fileTableModel);
+            }
+            table.getSelectionModel().removeListSelectionListener(listSelectionListener);
+            fileTableModel.setNodes(files);
+            table.getSelectionModel().addListSelectionListener(listSelectionListener);
+            if (!cellSizesSet) {
+                Icon icon = fileIcon;
+                // ownSize adjustment to better account for icons
+                table.setRowHeight(icon.getIconHeight() + rowIconPadding);
+
+                setColumnWidth(0, -1);
+                setColumnWidth(3, 60);
+                table.getColumnModel().getColumn(3).setMaxWidth(120);
+                setColumnWidth(4, -1);
+
+                cellSizesSet = true;
+            }
+        });
+    }
+
     private void showRootFile() {
         // ensure the main files are displayed
         tree.setSelectionInterval(0, 0);
@@ -255,93 +264,21 @@ public class FileManager {
         return null;
     }
 
-    private void renameFile() {
-        if (currentNode == null) {
-            showErrorMessage("No file selected to rename.", "Select Node");
-            return;
-        }
-
-        String renameTo = JOptionPane.showInputDialog(gui, "New Name");
-        if (renameTo != null) {
-            try {
-                boolean directory = currentNode.isDirectory();
-                TreePath parentPath = findTreePath(currentNode.getParent());
-                DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) parentPath.getLastPathComponent();
-
-//                boolean renamed = currentNode.renameTo(new Node(currentNode.getParentFile(), renameTo));
-                boolean renamed = false;
-                //TODO: Implement rename!
-                //noinspection ConstantConditions
-                if (renamed) {
-                    updateTree(directory, parentNode);
-                } else {
-                    String msg = "The file '" +
-                            currentNode +
-                            "' could not be renamed.";
-                    showErrorMessage(msg, "Rename Failed");
-                }
-            } catch (Throwable t) {
-                showThrowable(t);
-            }
-        }
-        gui.repaint();
-    }
-
-    private void updateTree(boolean directory, DefaultMutableTreeNode parentNode) {
+    private void updateTree(boolean directory, Node parentNode) {
         if (directory) {
             // rename the node..
 
             // delete the current node..
             TreePath currentPath = findTreePath(currentNode);
             System.out.println(currentPath);
-            DefaultMutableTreeNode currentNode = (DefaultMutableTreeNode) currentPath.getLastPathComponent();
+            Node currentNode = (Node) currentPath.getLastPathComponent();
 
-            treeModel.removeNodeFromParent(currentNode);
+//            treeModel.removeNodeFromParent(currentNode);
 
             // add a new node..
         }
 
-        showChildren(parentNode);
-    }
-
-    private void deleteFile() {
-        if (currentNode == null) {
-            showErrorMessage("No file selected for deletion.", "Select Node");
-            return;
-        }
-
-        int result = JOptionPane.showConfirmDialog(
-                gui,
-                "Are you sure you want to delete this file?",
-                "Delete Node",
-                JOptionPane.YES_NO_OPTION
-        );
-        if (result == JOptionPane.YES_OPTION) {
-            try {
-                System.out.println("currentNode: " + currentNode);
-                TreePath parentPath = findTreePath(currentNode.getParent());
-                System.out.println("parentPath: " + parentPath);
-                DefaultMutableTreeNode parentNode =
-                        (DefaultMutableTreeNode) parentPath.getLastPathComponent();
-                System.out.println("parentNode: " + parentNode);
-
-                boolean directory = currentNode.isDirectory();
-//                boolean deleted = currentNode.delete();
-                boolean deleted = false;
-                // TODO: Implement delete!
-                if (deleted) {
-                    updateTree(directory, parentNode);
-                } else {
-                    String msg = "The file '" +
-                            currentNode +
-                            "' could not be deleted.";
-                    showErrorMessage(msg, "Delete Failed");
-                }
-            } catch (Throwable t) {
-                showThrowable(t);
-            }
-        }
-        gui.repaint();
+        showChildrenInTable(parentNode);
     }
 
     private void showErrorMessage(String errorMessage, String errorTitle) {
@@ -364,35 +301,6 @@ public class FileManager {
         gui.repaint();
     }
 
-    /**
-     * Update the table on the EDT
-     */
-    private void setTableData(final Node[] files) {
-        SwingUtilities.invokeLater(() -> {
-            if (fileTableModel == null) {
-                fileTableModel = new NodeTableModel();
-                table.setModel(fileTableModel);
-            }
-            table.getSelectionModel().removeListSelectionListener(listSelectionListener);
-            fileTableModel.setNodes(files);
-            table.getSelectionModel().addListSelectionListener(listSelectionListener);
-            if (!cellSizesSet) {
-                Icon icon = fileIcon;
-                // ownSize adjustment to better account for icons
-                table.setRowHeight(icon.getIconHeight() + rowIconPadding);
-
-                System.out.println(table.getRowHeight());
-
-                setColumnWidth(0, -1);
-                setColumnWidth(3, 60);
-                table.getColumnModel().getColumn(3).setMaxWidth(120);
-                setColumnWidth(4, -1);
-
-                cellSizesSet = true;
-            }
-        });
-    }
-
     private void setColumnWidth(int column, int width) {
         TableColumn tableColumn = table.getColumnModel().getColumn(column);
         if (width < 0) {
@@ -407,66 +315,28 @@ public class FileManager {
         tableColumn.setMinWidth(width);
     }
 
-    /**
-     * Add the files that are contained within the directory of this node.
-     * Thanks to Hovercraft Full Of Eels.
-     */
-    private void showChildren(final DefaultMutableTreeNode node) {
-        tree.setEnabled(false);
-        progressBar.setVisible(true);
-        progressBar.setIndeterminate(true);
-
-        SwingWorker<Void, Node> worker = new SwingWorker<Void, Node>() {
-            @Override
-            public Void doInBackground() {
-                Node file = (Node) node.getUserObject();
-                if (file.isDirectory()) {
-                    Node[] files = file.getChildren().toArray(new Node[0]);
-                    if (node.isLeaf()) {
-                        for (Node child : files) {
-                            if (child.isDirectory()) {
-                                publish(child);
-                            }
-                        }
-                    }
-                    setTableData(files);
-                }
-                return null;
-            }
-
-            @Override
-            protected void process(List<Node> chunks) {
-                for (Node child : chunks) {
-                    node.add(new DefaultMutableTreeNode(child));
-                }
-            }
-
-            @Override
-            protected void done() {
-                progressBar.setIndeterminate(false);
-                progressBar.setVisible(false);
-                tree.setEnabled(true);
-            }
-        };
-        worker.execute();
+    private void showChildrenInTable(final Node node) {
+        if (node.isDirectory()) {
+            setTableData(node.getChildren());
+        }
     }
 
     /**
      * Update the Node details view with the details of this Node.
      */
-    private void setFileDetails(Node file) {
-        currentNode = file;
-        Icon icon = file.isDirectory() ? folderClosedIcon : fileIcon;
+    private void setFileDetails(Node node) {
+        currentNode = node;
+        Icon icon = node.isDirectory() ? folderClosedIcon : fileIcon;
         fileName.setIcon(icon);
-        fileName.setText(file.getName());
-        path.setText(file.getPath());
-        absoluteSize.setText(Manager.humanReadableByteCount(file.getAbsoluteSize(), true));
-        ownSize.setText(Manager.humanReadableByteCount(file.getSize(), true));
-        hash.setText(file.isDirectory() ? "" : Long.toHexString(((FileNode) file).getHash()));
+        fileName.setText(node.getName());
+        path.setText(node.getPath());
+        absoluteSize.setText(Manager.humanReadableByteCount(node.getAbsoluteSize(), true));
+        ownSize.setText(Manager.humanReadableByteCount(node.getSize(), true));
+        hash.setText(Long.toHexString(node.getHash()));
 
         JFrame f = (JFrame) gui.getTopLevelAncestor();
         if (f != null) {
-            f.setTitle(APP_TITLE + " :: " + file.getName());
+            f.setTitle(APP_TITLE + " :: " + node.getName());
         }
 
         gui.repaint();
@@ -476,7 +346,7 @@ public class FileManager {
         SwingUtilities.invokeLater(() -> {
             try {
                 // Significantly improves the look of the output in
-                // terms of the file names returned by FileSystemView!
+                // terms of the node names returned by FileSystemView!
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {
             }

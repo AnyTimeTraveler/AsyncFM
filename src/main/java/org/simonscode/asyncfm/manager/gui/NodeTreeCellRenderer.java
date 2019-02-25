@@ -4,7 +4,6 @@ package org.simonscode.asyncfm.manager.gui;
 import org.simonscode.asyncfm.common.Node;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import java.awt.*;
 
@@ -30,20 +29,21 @@ class NodeTreeCellRenderer extends DefaultTreeCellRenderer {
             int row,
             boolean hasFocus) {
 
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
-        Node file = (Node) node.getUserObject();
-        label.setIcon(null); // TODO: Icon!
-        label.setText(file.getName());
-        label.setToolTipText(file.getPath());
+        Node node = (Node) value;
+        label.setIcon(node.isDirectory() ? FileManager.folderClosedIcon : FileManager.fileIcon);
+        label.setText(node.getName());
+        label.setToolTipText(node.getPath());
 
         if (selected) {
+            if (node.isDirectory()) {
+                label.setIcon(FileManager.folderOpenIcon);
+            }
+            label.setBackground(backgroundNonSelectionColor);
             label.setBackground(backgroundSelectionColor);
             label.setForeground(textSelectionColor);
         } else {
-            label.setBackground(backgroundNonSelectionColor);
             label.setForeground(textNonSelectionColor);
         }
-
         return label;
     }
 }

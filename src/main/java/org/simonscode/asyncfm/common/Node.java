@@ -1,23 +1,35 @@
 package org.simonscode.asyncfm.common;
 
-import java.io.Serializable;
+import javax.swing.tree.TreeNode;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 
-public class Node implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Node implements TreeNode {
 
     private final transient long id;
-    private final Node parent;
-    private final String name;
+    private Node parent;
+    private String name;
+    private boolean isDirectory;
     private final List<Node> children;
+    private long size;
+    private long hash;
 
     public Node(long id, Node parent, String name) {
+        this.isDirectory = true;
         this.id = id;
         this.parent = parent;
         this.name = name;
         this.children = new ArrayList<>();
+    }
+
+    public Node(long id, Node parent, String name, long size, long hash) {
+        this(id, parent, name);
+        this.isDirectory = false;
+        this.size = size;
+        this.hash = hash;
     }
 
     public long countChildren() {
@@ -32,7 +44,7 @@ public class Node implements Serializable {
     }
 
     public boolean isDirectory() {
-        return true;
+        return isDirectory;
     }
 
     public String getName() {
@@ -41,7 +53,7 @@ public class Node implements Serializable {
 
     public long getAbsoluteSize() {
         if (children.isEmpty()) {
-            return getSize();
+            return size;
         }
         long amount = 0L;
         for (Node child : children) {
@@ -51,14 +63,15 @@ public class Node implements Serializable {
     }
 
     public long getSize() {
-        return 0L;
+        return size;
     }
 
     public List<Node> getChildren() {
         return children;
     }
 
-    public Node getParent() {
+    @Override
+    public TreeNode getParent() {
         return parent;
     }
 
@@ -72,5 +85,43 @@ public class Node implements Serializable {
 
     public void addChild(Node node) {
         children.add(node);
+    }
+
+    public long getHash() {
+        return hash;
+    }
+
+    @Override
+    public TreeNode getChildAt(int childIndex) {
+        return children.get(childIndex);
+    }
+
+    @Override
+    public int getChildCount() {
+        return children.size();
+    }
+
+
+    @Override
+    public int getIndex(TreeNode node) {
+        if (!(node instanceof Node)) {
+            throw new InvalidParameterException("child is not instance of Node");
+        }
+        return children.indexOf(node);
+    }
+
+    @Override
+    public boolean getAllowsChildren() {
+        return isDirectory;
+    }
+
+    @Override
+    public boolean isLeaf() {
+        return !isDirectory;
+    }
+
+    @Override
+    public Enumeration<? extends TreeNode> children() {
+        return Collections.enumeration(children);
     }
 }

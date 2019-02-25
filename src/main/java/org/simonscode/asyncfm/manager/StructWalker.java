@@ -1,6 +1,5 @@
 package org.simonscode.asyncfm.manager;
 
-import org.simonscode.asyncfm.common.FileNode;
 import org.simonscode.asyncfm.common.Node;
 
 import java.io.DataInputStream;
@@ -40,12 +39,12 @@ public class StructWalker {
         String name = new String(nameBytes, Charset.forName("UTF-8"));
         boolean isFile = dis.readBoolean();
         while (parentId != parent.getId()) {
-            parent = parent.getParent();
+            parent = (Node) parent.getParent();
         }
         if (isFile) {
             long size = dis.readLong();
             long hash = dis.readLong();
-            node = new FileNode(id, parent, name, size, hash);
+            node = new Node(id, parent, name, size, hash);
         } else {
             node = new Node(id, parent, name);
         }
