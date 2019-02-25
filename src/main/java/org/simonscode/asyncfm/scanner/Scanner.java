@@ -53,7 +53,7 @@ public class Scanner {
             System.out.printf("Writing to \"%s\"...%n", args[0]);
             try (FileOutputStream fos = new FileOutputStream(args[0])) {
                 FileSystemWalker fsw = new FileSystemWalker(fos);
-                fsw.walk(path);
+//                fsw.walk(path);
             }
 
             timer.cancel();

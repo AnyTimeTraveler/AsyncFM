@@ -9,7 +9,6 @@ import java.util.List;
 
 public class Node implements TreeNode {
 
-    private final transient long id;
     private Node parent;
     private String name;
     private boolean isDirectory;
@@ -17,16 +16,15 @@ public class Node implements TreeNode {
     private long size;
     private long hash;
 
-    public Node(long id, Node parent, String name) {
+    public Node(Node parent, String name) {
         this.isDirectory = true;
-        this.id = id;
         this.parent = parent;
         this.name = name;
         this.children = new ArrayList<>();
     }
 
-    public Node(long id, Node parent, String name, long size, long hash) {
-        this(id, parent, name);
+    public Node(Node parent, String name, long size, long hash) {
+        this(parent, name);
         this.isDirectory = false;
         this.size = size;
         this.hash = hash;
@@ -43,14 +41,6 @@ public class Node implements TreeNode {
         return amount;
     }
 
-    public boolean isDirectory() {
-        return isDirectory;
-    }
-
-    public String getName() {
-        return name;
-    }
-
     public long getAbsoluteSize() {
         if (children.isEmpty()) {
             return size;
@@ -62,12 +52,44 @@ public class Node implements TreeNode {
         return amount;
     }
 
-    public long getSize() {
-        return size;
+    public void setParent(Node parent) {
+        this.parent = parent;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public boolean isDirectory() {
+        return isDirectory;
+    }
+
+    public void setDirectory(boolean directory) {
+        isDirectory = directory;
     }
 
     public List<Node> getChildren() {
         return children;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
+    public long getHash() {
+        return hash;
+    }
+
+    public void setHash(long hash) {
+        this.hash = hash;
     }
 
     @Override
@@ -79,16 +101,8 @@ public class Node implements TreeNode {
         return (parent != null ? parent.getPath() : "") + "/" + name;
     }
 
-    public long getId() {
-        return id;
-    }
-
     public void addChild(Node node) {
         children.add(node);
-    }
-
-    public long getHash() {
-        return hash;
     }
 
     @Override
@@ -123,5 +137,12 @@ public class Node implements TreeNode {
     @Override
     public Enumeration<? extends TreeNode> children() {
         return Collections.enumeration(children);
+    }
+
+    public Node getChildByName(String entry) {
+        for (Node node : children)
+            if (node.name.equals(entry))
+                return node;
+        return null;
     }
 }

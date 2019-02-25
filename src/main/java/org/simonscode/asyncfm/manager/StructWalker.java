@@ -20,7 +20,7 @@ public class StructWalker {
 
 
     public Node readTree() throws IOException {
-        Node root = readNode(new Node(0L, null, "root"));
+        Node root = readNode(new Node(null, "/"));
         Node current = root;
         while (dis.available() > 0) {
             current = readNode(current);
@@ -35,18 +35,21 @@ public class StructWalker {
         long id = fileCounter.incrementAndGet();
         long parentId = dis.readLong();
         byte[] nameBytes = new byte[dis.readInt()];
+
+        // we assume this works, since it'll crash below if it doesn't
+        //noinspection ResultOfMethodCallIgnored
         dis.read(nameBytes);
         String name = new String(nameBytes, Charset.forName("UTF-8"));
         boolean isFile = dis.readBoolean();
-        while (parentId != parent.getId()) {
-            parent = (Node) parent.getParent();
-        }
+//        while (parentId != parent.getId()) {
+//            parent = (Node) parent.getParent();
+//        }
         if (isFile) {
             long size = dis.readLong();
             long hash = dis.readLong();
-            node = new Node(id, parent, name, size, hash);
+            node = new Node(parent, name, size, hash);
         } else {
-            node = new Node(id, parent, name);
+            node = new Node(parent, name);
         }
 
         parent.addChild(node);

@@ -100,7 +100,7 @@ public class FileManager {
             detailView.add(tableScroll, BorderLayout.CENTER);
 
             // the Node tree
-            Node root = new Node(0L, null, "/");
+            Node root = new Node(null, "/");
             root.addChild(rootNode);
             treeModel = new DefaultTreeModel(root);
 
