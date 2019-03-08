@@ -1,5 +1,9 @@
 /.idea/
-/.gradle/
-/out/
-/build/
-/data.dat
+/Manager/.gradle/
+/Manager/build/
+/Manager/target/
+/Manager/out/
+/scanner/target/
+*.dat
+*.iml
+*.iws
