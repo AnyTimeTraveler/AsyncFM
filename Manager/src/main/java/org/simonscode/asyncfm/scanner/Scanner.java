@@ -15,8 +15,10 @@ public class Scanner {
     public static final AtomicReference<String> FileString = new AtomicReference<>();
     public static final AtomicInteger FileCounter = new AtomicInteger(0);
     private static final Timer timer = new Timer();
+    private static Thread mainThread;
 
     public static void main(String[] args) throws IOException {
+        mainThread = Thread.currentThread();
         if (args.length < 2) {
             System.err.println("Arguments: <output file> [paths to scan...]");
             return;
@@ -28,6 +30,10 @@ public class Scanner {
 
             @Override
             public void run() {
+                if (!mainThread.isAlive()) {
+                    System.out.println("The program has crashed. See stderr for more info.");
+                    timer.cancel();
+                }
                 if (last == FileCounter.get()) {
                     System.out.print('.');
                     newline = true;
