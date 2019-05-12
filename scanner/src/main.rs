@@ -1,6 +1,6 @@
 extern crate crc32fast;
 
-use std::env;
+use std::{env, thread};
 use std::fs::{self, DirEntry, File};
 use std::fs::read_link;
 use std::io::{self, BufWriter, Write};
@@ -9,6 +9,8 @@ use std::path::Path;
 
 use byteorder::{BigEndian, WriteBytesExt};
 use crc32fast::Hasher;
+use std::sync::Mutex;
+use core::time;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -36,18 +38,32 @@ fn main() {
 
 struct FSScanner {
     writer: BufWriter<File>,
+    path: Mutex<String>,
+    running: bool,
 }
 
 impl FSScanner {
     pub fn new(output_path: &str) -> FSScanner {
         let file = File::create(output_path).expect("Can't open target file.");
-        FSScanner {
+        let scanner = FSScanner {
+            path: Mutex::new(String::from("")),
             writer: BufWriter::new(file),
-        }
+            running: true,
+        };
+        thread::spawn(|| {
+            let sleep_time = time::Duration::from_millis(250);
+            while scanner.running {
+                println!("Reading: {}", scanner.path.lock().unwrap());
+                thread::sleep(sleep_time);
+            }
+        });
+
+        return scanner;
     }
 
     pub fn finalize(&mut self){
         self.writer.flush().expect("Error flushing target file!");
+        self.running = false;
     }
 
 
