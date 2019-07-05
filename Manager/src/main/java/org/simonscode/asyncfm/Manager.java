@@ -1,7 +1,6 @@
-package org.simonscode.asyncfm.manager;
+package org.simonscode.asyncfm;
 
-import org.simonscode.asyncfm.common.Node;
-import org.simonscode.asyncfm.manager.gui.FileManager;
+import org.simonscode.asyncfm.gui.FileManager;
 
 import java.io.FileInputStream;
 import java.io.IOException;

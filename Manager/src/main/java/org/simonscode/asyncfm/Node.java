@@ -1,4 +1,4 @@
-package org.simonscode.asyncfm.common;
+package org.simonscode.asyncfm;
 
 import javax.swing.tree.TreeNode;
 import java.security.InvalidParameterException;
