@@ -1,7 +1,7 @@
-package org.simonscode.asyncfm.manager.gui;
+package org.simonscode.asyncfm.gui;
 
-import org.simonscode.asyncfm.common.Node;
-import org.simonscode.asyncfm.manager.Manager;
+import org.simonscode.asyncfm.Node;
+import org.simonscode.asyncfm.Manager;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
