@@ -1,22 +1,15 @@
-use std::io::{BufWriter, Read, Write};
-use std::fs::{read_dir, read_link, DirEntry, File, metadata};
-use std::os::linux::fs::MetadataExt;
-use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
-use byteorder::{BigEndian, WriteBytesExt};
+use std::fs::{DirEntry, File, metadata, read_link};
+use std::io::{BufWriter, Read};
+use std::sync::mpsc::SyncSender;
 use crc32fast::Hasher;
-use std::env;
-use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
-use std::thread::{spawn, sleep};
-use std::time::{Duration, SystemTime, Instant};
-use crate::scanner::{Progress, write_entry};
+use crate::scanner::{Progress,write_entry};
+use std::path::PathBuf;
 
 pub fn read_file(id: &u64, parent_id: &u64, entry: &DirEntry, buf: &mut BufWriter<File>, log: &SyncSender<Progress>) {
     let name = entry.file_name();
     let name = name.to_str().unwrap();
-    let path = entry.path().as_os_str().to_str().unwrap().to_owned() + name;
 
-    let _ = log.try_send(Progress { id: *id, name: path.to_string() });
+    log.try_send(Progress { id: *id, name: name.to_string() });
 
     let name = name.as_bytes();
 
@@ -35,8 +28,6 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &DirEntry, buf: &mut BufWrite
         let meta = unix_meta.unwrap();
         let file_type = meta.file_type();
         let perms = meta.permissions();
-        uid = Some(meta.st_uid());
-        gid = Some(meta.st_gid());
 
         if file_type.is_dir() {
             flags |= 0b00000001;
@@ -69,18 +60,13 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &DirEntry, buf: &mut BufWrite
             let mut buffer = [0u8; 1024];
 
             let mut count = scanned_file.read(&mut buffer[..]).expect("Error while reading file for hashing!");
-            let mut start_time = Instant::now();
             while count > 0 {
                 count = scanned_file.read(&mut buffer[..]).expect("Error while reading file for hashing!");
                 hasher.update(&buffer[0..count]);
-                if start_time.elapsed().as_secs() > 5 {
-                    let _ = log.try_send(Progress { id: *id, name: path.to_string(), cont: true });
-                    start_time = Instant::now();
-                }
             }
             hash = Some(hasher.finalize());
         }
     }
-    write_entry(buf, id, parent_id, name, flags, size, created, modified, link_dest, mode, &hash);
+    scanner::write_entry(buf, id, parent_id, name, flags, size, created, modified, link_dest, mode, &hash);
 }
 

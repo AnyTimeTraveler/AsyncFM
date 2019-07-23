@@ -1,22 +1,16 @@
 extern crate crc32fast;
 
-mod scanner;
-
-#[cfg(windows)]
-mod windows_scanner;
-#[cfg(unix)]
-mod linux_scanner;
-
-
-use std::io::{BufWriter, Write};
-use std::path::{Path, PathBuf};
-use crc32fast::Hasher;
 use std::env;
-use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
-use std::thread::{spawn, sleep};
-use std::time::Duration;
 use std::fs::File;
-use scanner::Progress;
+use std::io::{BufWriter, Write};
+use std::path::Path;
+use std::sync::mpsc::{Receiver, sync_channel};
+use std::thread::{sleep, spawn};
+use std::time::Duration;
+
+use crate::scanner::Progress;
+
+mod scanner;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -49,12 +43,7 @@ fn main() {
     let output_file = File::create(&args[1]).expect("Can't open target file!");
     let mut output_file: BufWriter<File> = BufWriter::new(output_file);
 
-    #[cfg(unix)]
-        let read_file = linux_scanner::read_file;
-    #[cfg(windows)]
-        let read_file = windows_scanner::read_file;
-
-    scanner::visit_dirs(0, Path::new(&args[2]), &mut output_file, &log, read_file);
+    scanner::visit_dirs(0, Path::new(&args[2]), &mut output_file, &log);
 
     output_file.flush().expect("Error flushing target file!");
 
