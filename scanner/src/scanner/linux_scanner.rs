@@ -4,7 +4,6 @@ use std::os::linux::fs::MetadataExt;
 use std::sync::mpsc::SyncSender;
 
 use crate::scanner::{FileMetadata, Progress, write_entry};
-use std::borrow::Borrow;
 
 pub fn read_file(id: &u64, parent_id: &u64, entry: &fs::DirEntry, buf: &mut BufWriter<fs::File>, log: &SyncSender<Progress>) {
     let name = entry.file_name();
@@ -56,7 +55,9 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &fs::DirEntry, buf: &mut BufW
                 modified: meta.st_mtime(),
                 accessed: meta.st_atime(),
                 link_dest: match fs::read_link(entry.path()) {
-                    Ok(dest) => Some(dest.to_str().as_ref().unwrap().as_bytes()),
+                    Ok(dest) => {
+                        Some(dest.to_str().unwrap().as_bytes().to_owned())
+                    }
                     Err(_) => None,
                 },
                 hash: None,

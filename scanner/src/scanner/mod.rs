@@ -20,7 +20,7 @@ pub struct Progress {
     pub name: String,
 }
 
-struct FileMetadata<'t> {
+pub struct FileMetadata<'t> {
     id: u64,
     parent_id: u64,
     name: &'t[u8],
@@ -32,7 +32,7 @@ struct FileMetadata<'t> {
     created: i64,
     modified: i64,
     accessed: i64,
-    link_dest: Option<[u8]>,
+    link_dest: Option<Vec<u8>>,
     hash: Option<u32>,
 }
 
@@ -84,7 +84,7 @@ pub fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
     buf.write_i64::<BigEndian>(file.modified).expect("Error writing modified!");
     buf.write_i64::<BigEndian>(file.accessed).expect("Error writing accessed!");
 
-    match file.link_dest {
+    match &file.link_dest {
         Some(data) => buf.write_all(&data).expect("Error writing name!"),
         None => ()
     }
