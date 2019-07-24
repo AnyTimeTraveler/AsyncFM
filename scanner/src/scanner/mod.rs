@@ -24,7 +24,22 @@ pub struct FileMetadata<'t> {
     id: u64,
     parent_id: u64,
     name: &'t[u8],
+    /**
+    Flags: [1234 5678]
+
+    1: reserved
+    2: reserved
+    3: reserved
+    4: reserved
+    5: true if hash exists
+    6: true if symlink
+    7: true if file
+    8: true if directory
+    */
     flags: u8,
+    /**
+    Mode: standard linux mode data.
+    */
     mode: u32,
     uid: u32,
     gid: u32,
@@ -32,8 +47,8 @@ pub struct FileMetadata<'t> {
     created: i64,
     modified: i64,
     accessed: i64,
-    link_dest: Option<Vec<u8>>,
-    hash: Option<u32>,
+    link_dest: &'t[u8],
+    hash: u32,
 }
 
 pub fn visit_dirs(parent_id: u64,
@@ -84,15 +99,9 @@ pub fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
     buf.write_i64::<BigEndian>(file.modified).expect("Error writing modified!");
     buf.write_i64::<BigEndian>(file.accessed).expect("Error writing accessed!");
 
-    match &file.link_dest {
-        Some(data) => buf.write_all(&data).expect("Error writing name!"),
-        None => ()
-    }
+    buf.write_all(file.link_dest).expect("Error writing name!");
     buf.write_u8(0u8).expect("Error writing null byte at the end of a link dest string!");
-    match file.hash {
-        Some(data) => buf.write_u32::<BigEndian>(data).expect("Error while writing hash!"),
-        None => buf.write_u32::<BigEndian>(0u32).expect("Error while writing hash (0)!")
-    }
+    buf.write_u32::<BigEndian>(file.hash).expect("Error while writing hash!");
 }
 
 

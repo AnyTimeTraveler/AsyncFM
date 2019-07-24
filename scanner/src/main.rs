@@ -37,16 +37,17 @@ fn main() {
             }
             sleep(Duration::from_millis(250));
         }
-        println!("\nDone!");
     });
 
     let output_file = File::create(&args[1]).expect("Can't open target file!");
     let mut output_file: BufWriter<File> = BufWriter::new(output_file);
 
-    scanner::visit_dirs(0, Path::new(&args[2]), &mut output_file, &log);
+    let last_id = scanner::visit_dirs(0, Path::new(&args[2]), &mut output_file, &log);
+
 
     output_file.flush().expect("Error flushing target file!");
 
     drop(log);
     logger.join().expect("Error while waiting for the logger to finish!");
+    println!("\n\nDone!\nScanned {} files in total!", last_id);
 }

@@ -12,6 +12,8 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &fs::DirEntry, buf: &mut BufW
 
     let _ = log.try_send(Progress { id: *id, name: path.to_string() });
 
+    let mut link_dest;
+
     let file = match entry.path().metadata() {
         Err(_) => FileMetadata {
             id: *id,
@@ -25,8 +27,8 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &fs::DirEntry, buf: &mut BufW
             created: 0,
             modified: 0,
             accessed: 0,
-            link_dest: None,
-            hash: None,
+            link_dest: &[0u8;0],
+            hash: 0,
         },
         Ok(meta) => {
             let file_type = meta.file_type();
@@ -56,11 +58,12 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &fs::DirEntry, buf: &mut BufW
                 accessed: meta.st_atime(),
                 link_dest: match fs::read_link(entry.path()) {
                     Ok(dest) => {
-                        Some(dest.to_str().unwrap().as_bytes().to_owned())
-                    }
-                    Err(_) => None,
+                        link_dest = dest.to_str().unwrap().as_bytes().to_owned();
+                        &link_dest
+                    },
+                    Err(_) => &[0u8;0],
                 },
-                hash: None,
+                hash: 0,
             }
         }
     };
