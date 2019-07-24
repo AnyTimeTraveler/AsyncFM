@@ -25,8 +25,8 @@ public class Manager {
 //            for (Node n : nodes) {
 //                System.out.printf("%-30s %8s%n", n.getName(), humanReadableByteCount(n.getAbsoluteSize(), true));
 //            }
-            FileManager fileManager = new FileManager(root);
-            fileManager.createAndShowGui();
+//            FileManager fileManager = new FileManager(root);
+//            fileManager.createAndShowGui();
         } catch (IOException e) {
             e.printStackTrace();
         }

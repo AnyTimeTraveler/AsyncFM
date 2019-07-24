@@ -1,6 +1,9 @@
 package org.simonscode.asyncfm;
 
 import javax.swing.tree.TreeNode;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,26 +11,56 @@ import java.util.Enumeration;
 import java.util.List;
 
 public class Node implements TreeNode {
+    long id;            //  u64
+    long parent_id;        //  u64
+    String name;        //  &'t[u8]
+    byte flags;            //  u8
+    int mode;            //  u32
+    int uid;            //  u32
+    int gid;            //  u32
+    long size;            //  u64
+    long created;        //  i64
+    long modified;        //  i64
+    long accessed;        //  i64
+    String link_dest;    //  Option<Vec<u8>>
+    int hash;            //  Option<u32>
 
     private Node parent;
-    private String name;
-    private boolean isDirectory;
     private final List<Node> children;
-    private long size;
-    private long hash;
 
-    public Node(Node parent, String name) {
-        this.isDirectory = true;
-        this.parent = parent;
-        this.name = name;
-        this.children = new ArrayList<>();
+    public Node(DataInputStream dis) throws IOException {
+        children = new ArrayList<>();
+
+        id = dis.readLong();
+        parent_id = dis.readLong();
+        name = readString(dis);
+        flags = dis.readByte();
+        mode = dis.readByte();
+        uid = dis.readInt();
+        gid = dis.readInt();
+        size = dis.readLong();
+        created = dis.readLong();
+        modified = dis.readLong();
+        accessed = dis.readLong();
+        link_dest = readString(dis);
+        hash = dis.readInt();
+
     }
 
-    public Node(Node parent, String name, long size, long hash) {
-        this(parent, name);
-        this.isDirectory = false;
-        this.size = size;
-        this.hash = hash;
+    private String readString(DataInputStream dis) throws IOException {
+        byte[] data = new byte[1024];
+        byte read = dis.readByte();
+        int i;
+        for (i = 0; read != 0; i++) {
+            if (i == data.length) {
+                byte[] replacement = new byte[data.length + 1024];
+                System.arraycopy(data, 0, replacement, 0, data.length);
+                data = replacement;
+            }
+            data[i] = read;
+            read = dis.readByte();
+        }
+        return new String(data, 0, i, Charset.forName("UTF-8"));
     }
 
     public long countChildren() {
@@ -65,11 +98,13 @@ public class Node implements TreeNode {
     }
 
     public boolean isDirectory() {
-        return isDirectory;
+//        return isDirectory;
+        return false;
     }
 
+
     public void setDirectory(boolean directory) {
-        isDirectory = directory;
+//        isDirectory = directory;
     }
 
     public List<Node> getChildren() {
@@ -86,10 +121,6 @@ public class Node implements TreeNode {
 
     public long getHash() {
         return hash;
-    }
-
-    public void setHash(long hash) {
-        this.hash = hash;
     }
 
     @Override
@@ -126,12 +157,14 @@ public class Node implements TreeNode {
 
     @Override
     public boolean getAllowsChildren() {
-        return isDirectory;
+//        return isDirectory;
+        return false;
     }
 
     @Override
     public boolean isLeaf() {
-        return !isDirectory;
+//        return !isDirectory;
+        return false;
     }
 
     @Override
