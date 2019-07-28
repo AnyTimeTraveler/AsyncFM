@@ -29,7 +29,6 @@ public class StructWalker {
         while (dis.available() > 0) {
             Node node = new Node(dis);
             nodes.add(node);
-            System.out.println(node);
         }
         System.out.println("Done!");
 
@@ -65,6 +64,7 @@ public class StructWalker {
                 continue;
             }
             for (Node child : siblings) {
+                if (child.id != parent.id)
                 parent.addChild(child);
             }
         }

@@ -31,16 +31,11 @@ public class Node implements TreeNode {
     public Node(DataInputStream dis) throws IOException {
         children = new ArrayList<>();
 
-        assert Byte.MIN_VALUE == dis.readByte();
-        assert Byte.MIN_VALUE == dis.readByte();
-        assert Byte.MIN_VALUE == dis.readByte();
-        assert Byte.MIN_VALUE == dis.readByte();
-
         id = dis.readLong();
         parent_id = dis.readLong();
         name = readString(dis);
         flags = dis.readByte();
-        mode = dis.readByte();
+        mode = dis.readInt();
         uid = dis.readInt();
         gid = dis.readInt();
         size = dis.readLong();
@@ -49,11 +44,6 @@ public class Node implements TreeNode {
         accessed = dis.readLong();
         link_dest = readString(dis);
         hash = dis.readInt();
-
-        assert Byte.MAX_VALUE == dis.readByte();
-        assert Byte.MAX_VALUE == dis.readByte();
-        assert Byte.MAX_VALUE == dis.readByte();
-        assert Byte.MAX_VALUE == dis.readByte();
     }
 
     private String readString(DataInputStream dis) throws IOException {
@@ -94,26 +84,42 @@ public class Node implements TreeNode {
         return amount;
     }
 
-    public void setParent(Node parent) {
-        this.parent = parent;
+    private void setParent(Node targetLocation) {
+        this.parent = targetLocation;
+    }
+
+    public void move(Node targetLocation) {
+        parent.removeChild(this);
+        targetLocation.addChild(this);
+    }
+
+    public void addChild(Node child) {
+        child.setParent(this);
+        children.add(child);
+    }
+
+    private void removeChild(Node child) {
+        children.remove(child);
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    public void rename(String name) {
         this.name = name;
     }
 
     public boolean isDirectory() {
-//        return isDirectory;
-        return false;
+        return (flags & 0b00000001) == 0b00000001;
     }
 
+    public boolean isSymlink() {
+        return (flags & 0b00000100) == 0b00000100;
+    }
 
-    public void setDirectory(boolean directory) {
-//        isDirectory = directory;
+    public boolean isFile() {
+        return (flags & 0b00000010) == 0b00000010;
     }
 
     public List<Node> getChildren() {
@@ -124,8 +130,8 @@ public class Node implements TreeNode {
         return size;
     }
 
-    public void setSize(long size) {
-        this.size = size;
+    public boolean hasHash(){
+        return (flags & 0b00001000) == 0b00001000;
     }
 
     public long getHash() {
@@ -141,10 +147,6 @@ public class Node implements TreeNode {
         return (parent != null ? parent.getPath() : "") + "/" + name;
     }
 
-    public void addChild(Node node) {
-        children.add(node);
-    }
-
     @Override
     public TreeNode getChildAt(int childIndex) {
         return children.get(childIndex);
@@ -154,7 +156,6 @@ public class Node implements TreeNode {
     public int getChildCount() {
         return children.size();
     }
-
 
     @Override
     public int getIndex(TreeNode node) {
@@ -166,14 +167,12 @@ public class Node implements TreeNode {
 
     @Override
     public boolean getAllowsChildren() {
-//        return isDirectory;
-        return false;
+        return isDirectory();
     }
 
     @Override
     public boolean isLeaf() {
-//        return !isDirectory;
-        return false;
+        return isFile();
     }
 
     @Override
@@ -205,7 +204,7 @@ public class Node implements TreeNode {
                 ", link_dest='" + link_dest + '\'' +
                 ", hash=" + hash +
                 ", parent=" + parent +
-                ", children=" + children +
+                ", children=" + children.size() +
                 '}';
     }
 }

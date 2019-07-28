@@ -100,10 +100,7 @@ public class FileManager {
             detailView.add(tableScroll, BorderLayout.CENTER);
 
             // the Node tree
-//            Node root = new Node(null, "/");
-            Node root = null;
-            root.addChild(rootNode);
-            treeModel = new DefaultTreeModel(root);
+            treeModel = new DefaultTreeModel(rootNode);
 
             TreeSelectionListener treeSelectionListener = tse -> {
                 Node node = (Node) tse.getPath().getLastPathComponent();
