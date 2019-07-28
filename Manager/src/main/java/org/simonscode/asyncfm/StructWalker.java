@@ -27,7 +27,9 @@ public class StructWalker {
         // Read all nodes
         System.out.print("Reading data...");
         while (dis.available() > 0) {
-            nodes.add(new Node(dis));
+            Node node = new Node(dis);
+            nodes.add(node);
+            System.out.println(node);
         }
         System.out.println("Done!");
 

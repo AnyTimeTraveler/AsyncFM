@@ -85,6 +85,11 @@ pub fn visit_dirs(parent_id: u64,
 }
 
 pub fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
+    buf.write_u8(0u8).expect("Preamble");
+    buf.write_u8(0u8).expect("Preamble");
+    buf.write_u8(0u8).expect("Preamble");
+    buf.write_u8(0u8).expect("Preamble");
+
     buf.write_u64::<BigEndian>(file.id).expect("Error writing id!");
     buf.write_u64::<BigEndian>(file.parent_id).expect("Error writing parent id!");
     buf.write_all(file.name).expect("Error writing name!");
@@ -102,6 +107,12 @@ pub fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
     buf.write_all(file.link_dest).expect("Error writing name!");
     buf.write_u8(0u8).expect("Error writing null byte at the end of a link dest string!");
     buf.write_u32::<BigEndian>(file.hash).expect("Error while writing hash!");
+
+    buf.write_u8(0b11111111u8).expect("Postamble");
+    buf.write_u8(0b11111111u8).expect("Postamble");
+    buf.write_u8(0b11111111u8).expect("Postamble");
+    buf.write_u8(0b11111111u8).expect("Postamble");
+
 }
 
 

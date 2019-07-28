@@ -31,6 +31,11 @@ public class Node implements TreeNode {
     public Node(DataInputStream dis) throws IOException {
         children = new ArrayList<>();
 
+        assert Byte.MIN_VALUE == dis.readByte();
+        assert Byte.MIN_VALUE == dis.readByte();
+        assert Byte.MIN_VALUE == dis.readByte();
+        assert Byte.MIN_VALUE == dis.readByte();
+
         id = dis.readLong();
         parent_id = dis.readLong();
         name = readString(dis);
@@ -45,6 +50,10 @@ public class Node implements TreeNode {
         link_dest = readString(dis);
         hash = dis.readInt();
 
+        assert Byte.MAX_VALUE == dis.readByte();
+        assert Byte.MAX_VALUE == dis.readByte();
+        assert Byte.MAX_VALUE == dis.readByte();
+        assert Byte.MAX_VALUE == dis.readByte();
     }
 
     private String readString(DataInputStream dis) throws IOException {
@@ -177,5 +186,26 @@ public class Node implements TreeNode {
             if (node.name.equals(entry))
                 return node;
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return "Node{" +
+                "id=" + id +
+                ", parent_id=" + parent_id +
+                ", name='" + name + '\'' +
+                ", flags=" + flags +
+                ", mode=" + mode +
+                ", uid=" + uid +
+                ", gid=" + gid +
+                ", size=" + size +
+                ", created=" + created +
+                ", modified=" + modified +
+                ", accessed=" + accessed +
+                ", link_dest='" + link_dest + '\'' +
+                ", hash=" + hash +
+                ", parent=" + parent +
+                ", children=" + children +
+                '}';
     }
 }
