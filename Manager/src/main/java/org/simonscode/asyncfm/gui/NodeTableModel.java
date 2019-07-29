@@ -1,7 +1,6 @@
 package org.simonscode.asyncfm.gui;
 
 import org.simonscode.asyncfm.Node;
-import org.simonscode.asyncfm.Manager;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
@@ -38,7 +37,7 @@ class NodeTableModel extends AbstractTableModel {
             case 1:
                 return file.getName();
             case 2:
-                return Manager.humanReadableByteCount(file.isDirectory() ? file.getAbsoluteSize() : file.getSize(), true);
+                return file.isDirectory() ? file.getAbsoluteSizeString() : file.getSizeString();
             case 3:
                 return file.isDirectory() ? "" : Long.toHexString(file.getHash());
             case 4:

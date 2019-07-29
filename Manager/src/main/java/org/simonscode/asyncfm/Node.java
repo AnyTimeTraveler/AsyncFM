@@ -1,5 +1,7 @@
 package org.simonscode.asyncfm;
 
+import org.simonscode.asyncfm.gui.FileSize;
+
 import javax.swing.tree.TreeNode;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -73,6 +75,10 @@ public class Node implements TreeNode {
         return amount;
     }
 
+    public FileSize getAbsoluteSizeString() {
+        return new FileSize(getAbsoluteSize());
+    }
+
     public long getAbsoluteSize() {
         if (children.isEmpty()) {
             return size;
@@ -130,7 +136,11 @@ public class Node implements TreeNode {
         return size;
     }
 
-    public boolean hasHash(){
+    public FileSize getSizeString() {
+        return new FileSize(getAbsoluteSize());
+    }
+
+    public boolean hasHash() {
         return (flags & 0b00001000) == 0b00001000;
     }
 

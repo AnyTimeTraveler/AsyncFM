@@ -1,7 +1,6 @@
 package org.simonscode.asyncfm.gui;
 
 import org.simonscode.asyncfm.Node;
-import org.simonscode.asyncfm.Manager;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -9,12 +8,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -223,6 +224,22 @@ public class FileManager {
             if (fileTableModel == null) {
                 fileTableModel = new NodeTableModel();
                 table.setModel(fileTableModel);
+                TableRowSorter<NodeTableModel> trs = new TableRowSorter<>((NodeTableModel) table.getModel());
+
+                class FileSizeComparator implements Comparator {
+                    public int compare(Object o1, Object o2) {
+                        FileSize one = (FileSize)o1;
+                        FileSize other = (FileSize)o2;
+                        return one.compareTo(other);
+                    }
+
+                    public boolean equals(Object o2) {
+                        return this.equals(o2);
+                    }
+                }
+
+                trs.setComparator(2, new FileSizeComparator());
+                table.setRowSorter(trs);
             }
             table.getSelectionModel().removeListSelectionListener(listSelectionListener);
             fileTableModel.setNodes(files);
@@ -328,8 +345,8 @@ public class FileManager {
         fileName.setIcon(icon);
         fileName.setText(node.getName());
         path.setText(node.getPath());
-        absoluteSize.setText(Manager.humanReadableByteCount(node.getAbsoluteSize(), true));
-        ownSize.setText(Manager.humanReadableByteCount(node.getSize(), true));
+        absoluteSize.setText(FileSize.humanReadableByteCount(node.getAbsoluteSize()));
+        ownSize.setText(node.getSizeString().toString());
         hash.setText(Long.toHexString(node.getHash()));
 
         JFrame f = (JFrame) gui.getTopLevelAncestor();
