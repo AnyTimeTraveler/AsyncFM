@@ -1,16 +1,17 @@
-package org.simonscode.asyncfm;
+package org.simonscode.asyncfm.data;
 
 import org.simonscode.asyncfm.gui.FileSize;
 
 import javax.swing.tree.TreeNode;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+
+import static org.simonscode.asyncfm.data.StructUtils.readString;
 
 public class Node implements TreeNode {
     long id;            //  u64
@@ -46,22 +47,6 @@ public class Node implements TreeNode {
         accessed = dis.readLong();
         link_dest = readString(dis);
         hash = dis.readInt();
-    }
-
-    private String readString(DataInputStream dis) throws IOException {
-        byte[] data = new byte[1024];
-        byte read = dis.readByte();
-        int i;
-        for (i = 0; read != 0; i++) {
-            if (i == data.length) {
-                byte[] replacement = new byte[data.length + 1024];
-                System.arraycopy(data, 0, replacement, 0, data.length);
-                data = replacement;
-            }
-            data[i] = read;
-            read = dis.readByte();
-        }
-        return new String(data, 0, i, Charset.forName("UTF-8"));
     }
 
     public long countChildren() {

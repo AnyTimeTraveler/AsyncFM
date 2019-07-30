@@ -1,5 +1,5 @@
-use std::fs::{File, read_dir};
-use std::io::{BufWriter, Write};
+use std::fs::{File, OpenOptions, read_dir};
+use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::mpsc::SyncSender;
 
@@ -18,6 +18,14 @@ mod windows_scanner;
 pub struct Progress {
     pub id: u64,
     pub name: String,
+}
+
+#[derive(Debug)]
+pub struct Header<'t> {
+    version: u32,
+    flags: u8,
+    entries: u64,
+    base_path: &'t [u8],
 }
 
 #[derive(Debug)]
@@ -52,11 +60,52 @@ pub struct FileMetadata<'t> {
     hash: u32,
 }
 
-pub fn scan_directory(dir: &Path,
-                      mut buf: &mut BufWriter<File>,
+pub fn scan_directory(directory_to_scan: &Path,
+                      output_file: &Path,
                       log: &SyncSender<Progress>) -> u64 {
-    read_file(&0, &0, &dir.to_path_buf(), &mut buf, log);
-    visit_dirs(0,dir,buf,log)
+    let output_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(output_file)
+        .expect("Can't open target file!");
+
+    let mut buf = BufWriter::new(output_file);
+
+    let mut header = Header {
+        version: 1u32,
+        flags: 0u8,
+        entries: 0u64,
+        base_path: directory_to_scan.to_str().unwrap().as_bytes(),
+    };
+
+    write_header(&header, &mut buf);
+
+    read_file(&0, &0, &directory_to_scan.to_path_buf(), &mut buf, log);
+    let entries_read_count = visit_dirs(0, directory_to_scan, &mut buf, log);
+    buf.flush().expect("Error flushing target file!");
+
+    header.entries = entries_read_count;
+
+    update_header(&header,&mut buf);
+    buf.flush().expect("Error flushing target file!");
+
+    entries_read_count
+}
+
+fn write_header(header: &Header, buf: &mut BufWriter<File>) {
+    buf.seek(SeekFrom::Start(0)).expect("Error seeking in file!");
+    buf.write_u32::<BigEndian>(header.version).expect("Error writing header!");
+    buf.write_u8(header.flags).expect("Error writing flags!");
+    buf.write_u64::<BigEndian>(header.entries).expect("Error writing entries!");
+    buf.write_all(header.base_path).expect("Error writing base path!");
+    buf.write_u8(0u8).expect("Error writing string end byte!");
+}
+
+
+fn update_header(header: &Header, buf: &mut BufWriter<File>) {
+    buf.seek(SeekFrom::Start(5)).expect("Error seeking in file!");
+    buf.write_u64::<BigEndian>(header.entries).expect("Error writing entries!");
 }
 
 fn visit_dirs(parent_id: u64,

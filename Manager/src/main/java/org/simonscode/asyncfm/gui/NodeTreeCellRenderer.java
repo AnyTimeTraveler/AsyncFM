@@ -1,7 +1,7 @@
 package org.simonscode.asyncfm.gui;
 
 
-import org.simonscode.asyncfm.Node;
+import org.simonscode.asyncfm.data.Node;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultTreeCellRenderer;

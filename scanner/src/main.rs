@@ -1,8 +1,6 @@
 extern crate crc32fast;
 
 use std::env;
-use std::fs::File;
-use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::sync::mpsc::{Receiver, sync_channel};
 use std::thread::{sleep, spawn};
@@ -39,13 +37,7 @@ fn main() {
         }
     });
 
-    let output_file = File::create(&args[1]).expect("Can't open target file!");
-    let mut output_file: BufWriter<File> = BufWriter::new(output_file);
-
-    let last_id = scanner::scan_directory(Path::new(&args[2]), &mut output_file, &log);
-
-
-    output_file.flush().expect("Error flushing target file!");
+    let last_id = scanner::scan_directory(Path::new(&args[2]),Path::new(&args[1]), &log);
 
     drop(log);
     logger.join().expect("Error while waiting for the logger to finish!");

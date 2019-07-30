@@ -1,6 +1,6 @@
 package org.simonscode.asyncfm.gui;
 
-import org.simonscode.asyncfm.Node;
+import org.simonscode.asyncfm.data.Node;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
