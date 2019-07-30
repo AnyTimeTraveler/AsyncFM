@@ -34,7 +34,6 @@ public class FileManager {
      * Directory listing
      */
     private JTable table;
-    private JProgressBar progressBar;
     public static ImageIcon folderOpenIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemResource("icons/16px/folder-open-solid.png")));
     private ListSelectionListener listSelectionListener;
     private boolean cellSizesSet = false;
@@ -59,7 +58,6 @@ public class FileManager {
     private Node currentNode;
 
     /* Node controls. */
-    private JButton openFile;
     private JButton renameFile;
     private JButton deduplicateFile;
     private JButton copyFile;
@@ -166,11 +164,6 @@ public class FileManager {
             // mnemonics stop working in a floated toolbar
             toolBar.setFloatable(false);
 
-
-            openFile = new JButton("Open");
-            openFile.setMnemonic('o');
-            toolBar.add(openFile);
-
             moveFile = new JButton("Move");
             moveFile.setMnemonic('m');
             moveFile.addActionListener(ae -> showErrorMessage("'Move' not implemented.", "Not implemented."));
@@ -207,13 +200,6 @@ public class FileManager {
                     treeScroll,
                     detailView);
             gui.add(splitPane, BorderLayout.CENTER);
-
-            JPanel simpleOutput = new JPanel(new BorderLayout(3, 3));
-            progressBar = new JProgressBar();
-            simpleOutput.add(progressBar, BorderLayout.EAST);
-            progressBar.setVisible(false);
-
-            gui.add(simpleOutput, BorderLayout.SOUTH);
 
         }
         return gui;
