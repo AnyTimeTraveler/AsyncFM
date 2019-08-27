@@ -13,6 +13,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -93,6 +95,19 @@ public class FileManager {
             };
 
             table.getSelectionModel().addListSelectionListener(listSelectionListener);
+            table.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    JTable table =(JTable) e.getSource();
+                    Point point = e.getPoint();
+                    int row = table.rowAtPoint(point);
+                    if (e.getClickCount() == 2 && table.getSelectedRow() != -1) {
+                        Node node = ((NodeTableModel) table.getModel()).getFile(row);
+                        setFileDetails(node);
+                        showChildrenInTable(node);
+                    }
+                }
+            });
             JScrollPane tableScroll = new JScrollPane(table);
             Dimension d = tableScroll.getPreferredSize();
             tableScroll.setPreferredSize(new Dimension((int) d.getWidth(), (int) d.getHeight() / 2));
@@ -163,6 +178,9 @@ public class FileManager {
             JToolBar toolBar = new JToolBar();
             // mnemonics stop working in a floated toolbar
             toolBar.setFloatable(false);
+
+            setFileDetails(rootNode);
+            showChildrenInTable(rootNode);
 
             moveFile = new JButton("Move");
             moveFile.setMnemonic('m');
