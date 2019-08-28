@@ -3,13 +3,11 @@ package org.simonscode.asyncfm.data;
 import org.simonscode.asyncfm.gui.FileSize;
 
 import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 
 import static org.simonscode.asyncfm.data.StructUtils.readString;
 
@@ -17,20 +15,20 @@ public class Node implements TreeNode {
 
     private static long largestId;
 
-    private long id;            //  u64
-    private long parent_id;     //  u64
-    private String name;        //  &'t[u8]
+    long id;            //  u64
+    long parent_id;     //  u64
+    String name;        //  &'t[u8]
     /**
-     Flags: [1234 5678]
-
-     1: reserved
-     2: reserved
-     3: reserved
-     4: reserved
-     5: true if hash exists
-     6: true if symlink
-     7: true if file
-     8: true if directory
+     * Flags: [1234 5678]
+     *
+     * 1: reserved
+     * 2: reserved
+     * 3: reserved
+     * 4: reserved
+     * 5: true if hash exists
+     * 6: true if symlink
+     * 7: true if file
+     * 8: true if directory
      */
     private byte flags;         //  u8
     private int mode;           //  u32
@@ -45,6 +43,7 @@ public class Node implements TreeNode {
 
     private Node parent;
     private final List<Node> children;
+    private boolean marked;
 
     public Node(DataInputStream dis) throws IOException {
         children = new ArrayList<>();
@@ -63,8 +62,9 @@ public class Node implements TreeNode {
         accessed = dis.readLong();
         link_dest = readString(dis);
         hash = dis.readInt();
+        marked = false;
 
-        if (id > largestId){
+        if (id > largestId) {
             largestId = id;
         }
     }
@@ -95,8 +95,9 @@ public class Node implements TreeNode {
         this.accessed = node.accessed;
         this.link_dest = node.link_dest;
         this.hash = node.hash;
+        this.marked = node.marked;
 
-        for (Node child : node.children){
+        for (Node child : node.children) {
             addChild(new Node(child));
         }
     }
@@ -172,6 +173,20 @@ public class Node implements TreeNode {
             if (node.name.equals(entry))
                 return node;
         return null;
+    }
+
+    public TreePath getTreePath() {
+        List<TreeNode> nodes = new LinkedList<>();
+        TreeNode treeNode = this;
+        nodes.add(treeNode);
+        treeNode = treeNode.getParent();
+        while (treeNode != null) {
+            nodes.add(0, treeNode);
+            treeNode = treeNode.getParent();
+        }
+
+        return nodes.isEmpty() ? null : new TreePath(nodes.toArray());
+
     }
 
     //=================================//
@@ -328,6 +343,13 @@ public class Node implements TreeNode {
         this.hash = hash;
     }
 
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
+    }
     //=======================//
     //  Common Java Methods  //
     //=======================//

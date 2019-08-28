@@ -2,6 +2,7 @@ package org.simonscode.asyncfm;
 
 import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.data.StructUtils;
+import org.simonscode.asyncfm.data.TransactionStore;
 import org.simonscode.asyncfm.gui.FileManager;
 
 import java.io.FileInputStream;
@@ -20,6 +21,7 @@ public class Manager {
         Node root = walker.readTree();
 
         FileManager fileManager = new FileManager(root);
+        TransactionStore.setFileManager(fileManager);
         fileManager.createAndShowGui();
     }
 }

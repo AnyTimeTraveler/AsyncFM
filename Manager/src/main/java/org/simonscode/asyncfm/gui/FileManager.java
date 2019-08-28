@@ -1,15 +1,14 @@
 package org.simonscode.asyncfm.gui;
 
 import org.simonscode.asyncfm.data.Node;
+import org.simonscode.asyncfm.operations.*;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
@@ -18,7 +17,6 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 
 public class FileManager {
@@ -37,7 +35,6 @@ public class FileManager {
      */
     private JTable table;
     public static ImageIcon folderOpenIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemResource("icons/16px/folder-open-solid.png")));
-    private ListSelectionListener listSelectionListener;
     private boolean cellSizesSet = false;
     private int rowIconPadding = 6;
     private final String APP_TITLE = "AsyncFM";
@@ -54,14 +51,10 @@ public class FileManager {
      * root node.
      */
     private final Node rootNode;
-    /**
-     * currently selected node.
-     */
-    private Node currentNode;
 
     /* Node controls. */
     private JButton renameFile;
-    private JButton deduplicateFile;
+    private JButton findDublicates;
     private JButton copyFile;
     private JButton moveFile;
     private JButton deleteFile;
@@ -88,27 +81,37 @@ public class FileManager {
             table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
             table.setAutoCreateRowSorter(true);
             table.setShowVerticalLines(false);
-
-            listSelectionListener = lse -> {
-                int row = table.getSelectionModel().getLeadSelectionIndex();
-                setFileDetails(((NodeTableModel) table.getModel()).getFile(row));
-            };
-
-            table.getSelectionModel().addListSelectionListener(listSelectionListener);
             table.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    JTable table =(JTable) e.getSource();
                     Point point = e.getPoint();
                     int row = table.rowAtPoint(point);
                     if (e.getClickCount() == 2 && table.getSelectedRow() != -1) {
                         Node node = ((NodeTableModel) table.getModel()).getFile(row);
                         setFileDetails(node);
                         showChildrenInTable(node);
+                        final TreePath treePath = node.getTreePath();
+                        tree.expandPath(treePath);
+                        tree.setSelectionPath(treePath);
+                    }
+                }
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    int row = table.getSelectionModel().getLeadSelectionIndex();
+                    if (row > -1) {
+                        setFileDetails(((NodeTableModel) table.getModel()).getFile(row));
                     }
                 }
             });
             JScrollPane tableScroll = new JScrollPane(table);
+            tableScroll.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    setFileDetails(((NodeTableModel) table.getModel()).getFile(1));
+                    table.clearSelection();
+                }
+            });
             Dimension d = tableScroll.getPreferredSize();
             tableScroll.setPreferredSize(new Dimension((int) d.getWidth(), (int) d.getHeight() / 2));
             detailView.add(tableScroll, BorderLayout.CENTER);
@@ -184,27 +187,27 @@ public class FileManager {
 
             moveFile = new JButton("Move");
             moveFile.setMnemonic('m');
-            moveFile.addActionListener(ae -> showErrorMessage("'Move' not implemented.", "Not implemented."));
+            moveFile.addActionListener(actionEvent -> fileAction(Move.class, moveFile));
             toolBar.add(moveFile);
 
-            deduplicateFile = new JButton("Deduplicate");
-            deduplicateFile.setMnemonic('u');
-            deduplicateFile.addActionListener(ae -> showErrorMessage("'Deduplicate' not implemented.", "Not implemented."));
-            toolBar.add(deduplicateFile);
+            findDublicates = new JButton("Find Dublicates");
+            findDublicates.setMnemonic('d');
+            findDublicates.addActionListener(actionEvent -> fileAction(FindDublicates.class, findDublicates));
+            toolBar.add(findDublicates);
 
             copyFile = new JButton("Copy");
             copyFile.setMnemonic('c');
-            copyFile.addActionListener(ae -> showErrorMessage("'Copy' not implemented.", "Not implemented."));
+            copyFile.addActionListener(actionEvent -> fileAction(Copy.class, copyFile));
             toolBar.add(copyFile);
 
             renameFile = new JButton("Rename");
             renameFile.setMnemonic('r');
-            renameFile.addActionListener(ae -> showErrorMessage("'Rename' not implemented.", "Not implemented."));
+            renameFile.addActionListener(actionEvent -> fileAction(Rename.class, renameFile));
             toolBar.add(renameFile);
 
             deleteFile = new JButton("Delete");
             deleteFile.setMnemonic('d');
-            deleteFile.addActionListener(ae -> showErrorMessage("'Delete' not implemented.", "Not implemented."));
+            deleteFile.addActionListener(actionEvent -> fileAction(Delete.class, deleteFile));
             toolBar.add(deleteFile);
 
             JPanel fileView = new JPanel(new BorderLayout(3, 3));
@@ -223,31 +226,33 @@ public class FileManager {
         return gui;
     }
 
-    private void setTableData(final List<Node> files) {
+    private void fileAction(Class<? extends Transaction> action, JButton button) {
+        if (table.getSelectedRow() == -1) {
+            TransactionCreator.handleClick(action, button, ((NodeTableModel) table.getModel()).getParent(), this);
+        } else {
+            TransactionCreator.handleClick(action, button, ((NodeTableModel) table.getModel()).getFile(table.getSelectedRow()), this);
+        }
+    }
+
+    private void setTableData(final Node parent) {
         SwingUtilities.invokeLater(() -> {
             if (fileTableModel == null) {
-                fileTableModel = new NodeTableModel();
+                fileTableModel = new NodeTableModel(parent);
                 table.setModel(fileTableModel);
                 TableRowSorter<NodeTableModel> trs = new TableRowSorter<>((NodeTableModel) table.getModel());
 
                 class FileSizeComparator implements Comparator {
                     public int compare(Object o1, Object o2) {
-                        FileSize one = (FileSize)o1;
-                        FileSize other = (FileSize)o2;
+                        FileSize one = (FileSize) o1;
+                        FileSize other = (FileSize) o2;
                         return one.compareTo(other);
-                    }
-
-                    public boolean equals(Object o2) {
-                        return this.equals(o2);
                     }
                 }
 
                 trs.setComparator(2, new FileSizeComparator());
                 table.setRowSorter(trs);
             }
-            table.getSelectionModel().removeListSelectionListener(listSelectionListener);
-            fileTableModel.setNodes(files);
-            table.getSelectionModel().addListSelectionListener(listSelectionListener);
+            fileTableModel.setParent(parent);
             if (!cellSizesSet) {
                 Icon icon = fileIcon;
                 // ownSize adjustment to better account for icons
@@ -268,39 +273,7 @@ public class FileManager {
         tree.setSelectionInterval(0, 0);
     }
 
-    private TreePath findTreePath(Node find) {
-        for (int i = 0; i < tree.getRowCount(); i++) {
-            TreePath treePath = tree.getPathForRow(i);
-            Object object = treePath.getLastPathComponent();
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) object;
-            Node nodeFile = (Node) node.getUserObject();
-
-            if (nodeFile == find) {
-                return treePath;
-            }
-        }
-        // not found!
-        return null;
-    }
-
-    private void updateTree(boolean directory, Node parentNode) {
-        if (directory) {
-            // rename the node..
-
-            // delete the current node..
-            TreePath currentPath = findTreePath(currentNode);
-            System.out.println(currentPath);
-            Node currentNode = (Node) currentPath.getLastPathComponent();
-
-//            treeModel.removeNodeFromParent(currentNode);
-
-            // add a new node..
-        }
-
-        showChildrenInTable(parentNode);
-    }
-
-    private void showErrorMessage(String errorMessage, String errorTitle) {
+    public void showErrorMessage(String errorMessage, String errorTitle) {
         JOptionPane.showMessageDialog(
                 gui,
                 errorMessage,
@@ -309,7 +282,16 @@ public class FileManager {
         );
     }
 
-    private void showThrowable(Throwable t) {
+    public String showInputDialog(String message, String title) {
+        return JOptionPane.showInputDialog(
+                gui,
+                message,
+                title,
+                JOptionPane.QUESTION_MESSAGE
+        );
+    }
+
+    public void showThrowable(Throwable t) {
         t.printStackTrace();
         JOptionPane.showMessageDialog(
                 gui,
@@ -336,7 +318,7 @@ public class FileManager {
 
     private void showChildrenInTable(final Node node) {
         if (node.isDirectory()) {
-            setTableData(node.getChildren());
+            setTableData(node);
         }
     }
 
@@ -344,20 +326,28 @@ public class FileManager {
      * Update the Node details view with the details of this Node.
      */
     private void setFileDetails(Node node) {
-        currentNode = node;
-        Icon icon = node.isDirectory() ? folderClosedIcon : fileIcon;
-        fileName.setIcon(icon);
-        fileName.setText(node.getName());
-        path.setText(node.getPath());
-        absoluteSize.setText(FileSize.humanReadableByteCount(node.getAbsoluteSize()));
-        ownSize.setText(node.getSizeString().toString());
-        hash.setText(Long.toHexString(node.getHash()));
-
         JFrame f = (JFrame) gui.getTopLevelAncestor();
-        if (f != null) {
-            f.setTitle(APP_TITLE + " :: " + node.getName());
+        if (node != null) {
+            Icon icon = node.isDirectory() ? folderClosedIcon : fileIcon;
+            fileName.setIcon(icon);
+            fileName.setText(node.getName());
+            path.setText(node.getPath());
+            absoluteSize.setText(FileSize.humanReadableByteCount(node.getAbsoluteSize()));
+            ownSize.setText(node.getSizeString().toString());
+            hash.setText(Long.toHexString(node.getHash()));
+            if (f != null) {
+                f.setTitle(APP_TITLE + " :: " + node.getPath());
+            }
+        } else {
+            fileName.setText("File not part of the image");
+            path.setText("");
+            absoluteSize.setText("");
+            ownSize.setText("");
+            hash.setText("");
+            if (f != null) {
+                f.setTitle(APP_TITLE);
+            }
         }
-
         gui.repaint();
     }
 
@@ -392,5 +382,8 @@ public class FileManager {
             showRootFile();
         });
     }
-}
 
+    public void update() {
+        fileTableModel.fireTableDataChanged();
+    }
+}

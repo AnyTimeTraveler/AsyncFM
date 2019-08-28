@@ -4,15 +4,13 @@ import org.simonscode.asyncfm.data.Node;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A TableModel to hold File[].
  */
 class NodeTableModel extends AbstractTableModel {
 
-    private List<Node> nodes;
+    private Node parent;
     private String[] columns = {
             "Icon",
             "File",
@@ -21,21 +19,30 @@ class NodeTableModel extends AbstractTableModel {
             "Children"
     };
 
-    NodeTableModel() {
-        this(new ArrayList<>());
-    }
-
-    NodeTableModel(List<Node> files) {
-        this.nodes = files;
+    NodeTableModel(Node parent) {
+        this.parent = parent;
     }
 
     public Object getValueAt(int row, int column) {
-        Node file = nodes.get(row);
+        Node file = getFile(row);
+        if (file == null){
+            switch (column) {
+                case 0:
+                    return FileManager.folderClosedIcon;
+                case 1:
+                    return "..";
+                case 2:
+                case 4:
+                    return 0;
+                default:
+             return "";
+            }
+        }
         switch (column) {
             case 0:
                 return file.isDirectory() ? FileManager.folderClosedIcon : FileManager.fileIcon;
             case 1:
-                return file.getName();
+                return row == 0 ? ".." : row == 1 ? "." : file.getName();
             case 2:
                 return file.isDirectory() ? file.getAbsoluteSizeString() : file.getSizeString();
             case 3:
@@ -68,15 +75,26 @@ class NodeTableModel extends AbstractTableModel {
     }
 
     public int getRowCount() {
-        return nodes.size();
+        return parent.getChildren().size() + 2;
     }
 
     public Node getFile(int row) {
-        return nodes.get(row);
+        switch (row) {
+            case 0:
+                return (Node) parent.getParent();
+            case 1:
+                return parent;
+            default:
+                return (Node) parent.getChildAt(row - 2);
+        }
     }
 
-    public void setNodes(List<Node> files) {
-        this.nodes = files;
+    public void setParent(Node parent) {
+        this.parent = parent;
         fireTableDataChanged();
+    }
+
+    public Node getParent() {
+        return parent;
     }
 }

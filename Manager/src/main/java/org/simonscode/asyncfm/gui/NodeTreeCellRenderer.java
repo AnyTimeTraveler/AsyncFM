@@ -44,6 +44,9 @@ class NodeTreeCellRenderer extends DefaultTreeCellRenderer {
         } else {
             label.setForeground(textNonSelectionColor);
         }
+        if (node.isMarked()){
+            label.setBackground(Color.MAGENTA);
+        }
         return label;
     }
 }
