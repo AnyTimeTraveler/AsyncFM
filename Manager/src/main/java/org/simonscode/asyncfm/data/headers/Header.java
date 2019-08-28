@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class Header {
 
-    int version;
+    private int version;
     byte flags;
     long entries;
     String basePath;

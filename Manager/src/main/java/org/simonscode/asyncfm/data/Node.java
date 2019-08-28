@@ -14,19 +14,34 @@ import java.util.List;
 import static org.simonscode.asyncfm.data.StructUtils.readString;
 
 public class Node implements TreeNode {
-    long id;            //  u64
-    long parent_id;        //  u64
-    String name;        //  &'t[u8]
-    byte flags;            //  u8
-    int mode;            //  u32
-    int uid;            //  u32
-    int gid;            //  u32
-    long size;            //  u64
-    long created;        //  i64
-    long modified;        //  i64
-    long accessed;        //  i64
-    String link_dest;    //  Option<Vec<u8>>
-    int hash;            //  Option<u32>
+
+    private static long largestId;
+
+    private long id;            //  u64
+    private long parent_id;     //  u64
+    private String name;        //  &'t[u8]
+    /**
+     Flags: [1234 5678]
+
+     1: reserved
+     2: reserved
+     3: reserved
+     4: reserved
+     5: true if hash exists
+     6: true if symlink
+     7: true if file
+     8: true if directory
+     */
+    private byte flags;         //  u8
+    private int mode;           //  u32
+    private int uid;            //  u32
+    private int gid;            //  u32
+    private long size;          //  u64
+    private long created;       //  i64
+    private long modified;      //  i64
+    private long accessed;      //  i64
+    private String link_dest;   //  &'t[u8]
+    private int hash;           //  u32
 
     private Node parent;
     private final List<Node> children;
@@ -34,6 +49,7 @@ public class Node implements TreeNode {
     public Node(DataInputStream dis) throws IOException {
         children = new ArrayList<>();
 
+        parent = null;
         id = dis.readLong();
         parent_id = dis.readLong();
         name = readString(dis);
@@ -47,6 +63,42 @@ public class Node implements TreeNode {
         accessed = dis.readLong();
         link_dest = readString(dis);
         hash = dis.readInt();
+
+        if (id > largestId){
+            largestId = id;
+        }
+    }
+
+    /**
+     * Copy constructor used for copying this node and its children.
+     * It is intended to be used for making a perfect copy of this node, except for setting the parent.
+     * This allows this node to become a new root.
+     *
+     * Important: This also generated new ID's for these files, so they can be differentiated from the originals.
+     *
+     * @param node The Node to be copied
+     */
+    public Node(Node node) {
+        children = new ArrayList<>();
+
+        this.parent = null;
+        this.id = ++largestId;
+        this.parent_id = 0L;
+        this.name = node.name;
+        this.flags = node.flags;
+        this.mode = node.mode;
+        this.uid = node.uid;
+        this.gid = node.gid;
+        this.size = node.size;
+        this.created = node.created;
+        this.modified = node.modified;
+        this.accessed = node.accessed;
+        this.link_dest = node.link_dest;
+        this.hash = node.hash;
+
+        for (Node child : node.children){
+            addChild(new Node(child));
+        }
     }
 
     public long countChildren() {
@@ -75,30 +127,16 @@ public class Node implements TreeNode {
         return amount;
     }
 
-    private void setParent(Node targetLocation) {
-        this.parent = targetLocation;
-    }
-
-    public void move(Node targetLocation) {
-        parent.removeChild(this);
-        targetLocation.addChild(this);
-    }
-
     public void addChild(Node child) {
-        child.setParent(this);
         children.add(child);
+        child.setParent(this);
+        child.setParentId(id);
     }
 
-    private void removeChild(Node child) {
+    public void removeChild(Node child) {
         children.remove(child);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void rename(String name) {
-        this.name = name;
+        child.setParent(null);
+        child.setParentId(0L);
     }
 
     public boolean isDirectory() {
@@ -117,10 +155,6 @@ public class Node implements TreeNode {
         return children;
     }
 
-    public long getSize() {
-        return size;
-    }
-
     public FileSize getSizeString() {
         return new FileSize(getAbsoluteSize());
     }
@@ -129,18 +163,20 @@ public class Node implements TreeNode {
         return (flags & 0b00001000) == 0b00001000;
     }
 
-    public long getHash() {
-        return hash;
-    }
-
-    @Override
-    public TreeNode getParent() {
-        return parent;
-    }
-
     public String getPath() {
         return (parent != null ? parent.getPath() : "") + "/" + name;
     }
+
+    public Node getChildByName(String entry) {
+        for (Node node : children)
+            if (node.name.equals(entry))
+                return node;
+        return null;
+    }
+
+    //=================================//
+    //    TreeNode required Methods    //
+    //=================================//
 
     @Override
     public TreeNode getChildAt(int childIndex) {
@@ -175,12 +211,126 @@ public class Node implements TreeNode {
         return Collections.enumeration(children);
     }
 
-    public Node getChildByName(String entry) {
-        for (Node node : children)
-            if (node.name.equals(entry))
-                return node;
-        return null;
+    //=================================//
+    //  Generated Getters and Setters  //
+    //=================================//
+
+    public long getId() {
+        return id;
     }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    @Override
+    public TreeNode getParent() {
+        return parent;
+    }
+
+    public void setParent(Node parent) {
+        this.parent = parent;
+    }
+
+    private long getParentId() {
+        return parent_id;
+    }
+
+    private void setParentId(long parent_id) {
+        this.parent_id = parent_id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public byte getFlags() {
+        return flags;
+    }
+
+    public void setFlags(byte flags) {
+        this.flags = flags;
+    }
+
+    public int getMode() {
+        return mode;
+    }
+
+    public void setMode(int mode) {
+        this.mode = mode;
+    }
+
+    public int getUid() {
+        return uid;
+    }
+
+    public void setUid(int uid) {
+        this.uid = uid;
+    }
+
+    public int getGid() {
+        return gid;
+    }
+
+    public void setGid(int gid) {
+        this.gid = gid;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
+    public long getCreated() {
+        return created;
+    }
+
+    public void setCreated(long created) {
+        this.created = created;
+    }
+
+    public long getModified() {
+        return modified;
+    }
+
+    public void setModified(long modified) {
+        this.modified = modified;
+    }
+
+    public long getAccessed() {
+        return accessed;
+    }
+
+    public void setAccessed(long accessed) {
+        this.accessed = accessed;
+    }
+
+    public String getLinkDest() {
+        return link_dest;
+    }
+
+    public void setLinkDest(String link_dest) {
+        this.link_dest = link_dest;
+    }
+
+    public int getHash() {
+        return hash;
+    }
+
+    public void setHash(int hash) {
+        this.hash = hash;
+    }
+
+    //=======================//
+    //  Common Java Methods  //
+    //=======================//
 
     @Override
     public String toString() {
