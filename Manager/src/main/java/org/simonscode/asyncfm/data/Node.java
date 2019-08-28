@@ -20,7 +20,7 @@ public class Node implements TreeNode {
     String name;        //  &'t[u8]
     /**
      * Flags: [1234 5678]
-     *
+     * <p>
      * 1: reserved
      * 2: reserved
      * 3: reserved
@@ -73,7 +73,7 @@ public class Node implements TreeNode {
      * Copy constructor used for copying this node and its children.
      * It is intended to be used for making a perfect copy of this node, except for setting the parent.
      * This allows this node to become a new root.
-     *
+     * <p>
      * Important: This also generated new ID's for these files, so they can be differentiated from the originals.
      *
      * @param node The Node to be copied
@@ -100,6 +100,28 @@ public class Node implements TreeNode {
         for (Node child : node.children) {
             addChild(new Node(child));
         }
+    }
+
+    public Node(Node parent, String name) {
+        children = new ArrayList<>();
+
+        this.parent = null;
+        this.id = ++largestId;
+        this.parent_id = 0L;
+        this.name = name;
+        // TODO: Replace with configurable values
+        this.flags = parent.flags;
+        this.mode = parent.mode;
+        this.uid = parent.uid;
+        this.gid = parent.gid;
+        this.size = 0L;
+        // TODO: Replace with current time
+        this.created = 0;
+        this.modified = 0;
+        this.accessed = 0;
+        this.link_dest = "";
+        this.hash = 0;
+        this.marked = false;
     }
 
     public long countChildren() {

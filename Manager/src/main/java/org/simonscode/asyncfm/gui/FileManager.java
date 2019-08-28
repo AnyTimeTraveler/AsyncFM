@@ -54,10 +54,11 @@ public class FileManager {
 
     /* Node controls. */
     private JButton renameFile;
-    private JButton findDublicates;
+    private JButton findDuplicates;
     private JButton copyFile;
     private JButton moveFile;
     private JButton deleteFile;
+    private JButton createFolder;
 
     /* Node details. */
     private JLabel fileName;
@@ -190,10 +191,10 @@ public class FileManager {
             moveFile.addActionListener(actionEvent -> fileAction(Move.class, moveFile));
             toolBar.add(moveFile);
 
-            findDublicates = new JButton("Find Dublicates");
-            findDublicates.setMnemonic('d');
-            findDublicates.addActionListener(actionEvent -> fileAction(FindDublicates.class, findDublicates));
-            toolBar.add(findDublicates);
+            findDuplicates = new JButton("Find Duplicates");
+            findDuplicates.setMnemonic('d');
+            findDuplicates.addActionListener(actionEvent -> fileAction(FindDuplicates.class, findDuplicates));
+            toolBar.add(findDuplicates);
 
             copyFile = new JButton("Copy");
             copyFile.setMnemonic('c');
@@ -209,6 +210,11 @@ public class FileManager {
             deleteFile.setMnemonic('d');
             deleteFile.addActionListener(actionEvent -> fileAction(Delete.class, deleteFile));
             toolBar.add(deleteFile);
+
+            createFolder = new JButton("Create Folder");
+            createFolder.setMnemonic('f');
+            createFolder.addActionListener(actionEvent -> fileAction(CreateFolder.class, createFolder));
+            toolBar.add(createFolder);
 
             JPanel fileView = new JPanel(new BorderLayout(3, 3));
             fileView.add(toolBar, BorderLayout.NORTH);

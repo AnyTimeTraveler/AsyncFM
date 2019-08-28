@@ -27,15 +27,15 @@ public class TransactionCreator {
                 }
                 resetState();
             }
-        } else if (action == Delete.class || action == FindDublicates.class) {
+        } else if (action == Delete.class || action == FindDuplicates.class) {
             try {
                 TransactionStore.addTransaction(action.getConstructor(Node.class).newInstance(node));
             } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 fileManager.showThrowable(e);
             }
             resetState();
-        } else if (action == Rename.class) {
-            String name = fileManager.showInputDialog("Please enter new name:", "Rename");
+        } else if (action == Rename.class || action == CreateFolder.class) {
+            String name = fileManager.showInputDialog("Please enter a name:", "Rename");
             if (name == null || name.contains("/")) {
                 fileManager.showErrorMessage("Invalid name! Renaming aborted.", "Rename");
             } else {

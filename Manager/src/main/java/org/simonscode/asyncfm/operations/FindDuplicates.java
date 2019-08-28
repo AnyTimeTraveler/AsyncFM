@@ -8,12 +8,12 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class FindDublicates extends Transaction {
+public class FindDuplicates extends Transaction {
     private final Node node;
 
     private Map<Integer, LinkedList<Node>> hashes;
 
-    public FindDublicates(final Node node) {
+    public FindDuplicates(final Node node) {
         this.node = node;
         hashes = new HashMap<>();
         fillHashMap(node);
@@ -56,6 +56,6 @@ public class FindDublicates extends Transaction {
 
     @Override
     public String toString() {
-        return null;
+        return String.format("Find duplicates in %s", node.getPath());
     }
 }
