@@ -240,7 +240,7 @@ public class Node implements TreeNode {
 
     @Override
     public boolean isLeaf() {
-        return isFile();
+        return isFile() || children.isEmpty();
     }
 
     @Override
