@@ -22,9 +22,11 @@ import java.util.Objects;
 public class FileManager {
 
     /**
-     * Main GUI container
+     * Main GUI elements
      */
-    private JPanel gui;
+    private JTabbedPane gui;
+    private JPanel fileBrowserPanel;
+    private JPanel transactionsPanel;
 
     /* Icons */
     public static ImageIcon fileIcon = new ImageIcon(Objects.requireNonNull(ClassLoader.getSystemResource("icons/16px/file-solid.png")));
@@ -73,163 +75,183 @@ public class FileManager {
 
     private Container getGui() {
         if (gui == null) {
-            gui = new JPanel(new BorderLayout(3, 3));
-            gui.setBorder(new EmptyBorder(5, 5, 5, 5));
+            gui = new JTabbedPane(SwingConstants.TOP);
 
-            JPanel detailView = new JPanel(new BorderLayout(3, 3));
+            initFileBrowserPanel();
+            gui.add("File Browser", fileBrowserPanel);
 
-            table = new JTable();
-            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            table.setAutoCreateRowSorter(true);
-            table.setShowVerticalLines(false);
-            table.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    Point point = e.getPoint();
-                    int row = table.rowAtPoint(point);
-                    if (e.getClickCount() == 2 && table.getSelectedRow() != -1) {
-                        Node node = ((NodeTableModel) table.getModel()).getFile(row);
-                        setFileDetails(node);
-                        showChildrenInTable(node);
-                        final TreePath treePath = node.getTreePath();
-                        tree.expandPath(treePath);
-                        tree.setSelectionPath(treePath);
-                    }
-                }
-
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    int row = table.getSelectionModel().getLeadSelectionIndex();
-                    if (row > -1) {
-                        setFileDetails(((NodeTableModel) table.getModel()).getFile(row));
-                    }
-                }
-            });
-            JScrollPane tableScroll = new JScrollPane(table);
-            tableScroll.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    setFileDetails(((NodeTableModel) table.getModel()).getFile(1));
-                    table.clearSelection();
-                }
-            });
-            Dimension d = tableScroll.getPreferredSize();
-            tableScroll.setPreferredSize(new Dimension((int) d.getWidth(), (int) d.getHeight() / 2));
-            detailView.add(tableScroll, BorderLayout.CENTER);
-
-            // the Node tree
-            treeModel = new DefaultTreeModel(rootNode);
-
-            TreeSelectionListener treeSelectionListener = tse -> {
-                Node node = (Node) tse.getPath().getLastPathComponent();
-                showChildrenInTable(node);
-                setFileDetails(node);
-            };
-
-            tree = new JTree(treeModel);
-            tree.setRootVisible(false);
-            tree.addTreeSelectionListener(treeSelectionListener);
-            tree.setCellRenderer(new NodeTreeCellRenderer());
-            tree.expandRow(0);
-            JScrollPane treeScroll = new JScrollPane(tree);
-
-            // as per trashgod tip
-            tree.setVisibleRowCount(15);
-
-            Dimension preferredSize = treeScroll.getPreferredSize();
-            Dimension widePreferred = new Dimension(
-                    200,
-                    (int) preferredSize.getHeight());
-            treeScroll.setPreferredSize(widePreferred);
-
-            // details for a Node
-            JPanel fileMainDetails = new JPanel(new BorderLayout(4, 2));
-            fileMainDetails.setBorder(new EmptyBorder(0, 6, 0, 6));
-
-            JPanel fileDetailsLabels = new JPanel(new GridLayout(0, 1, 2, 2));
-            fileMainDetails.add(fileDetailsLabels, BorderLayout.WEST);
-
-            JPanel fileDetailsValues = new JPanel(new GridLayout(0, 1, 2, 2));
-            fileMainDetails.add(fileDetailsValues, BorderLayout.CENTER);
-
-            fileDetailsLabels.add(new JLabel("Name", JLabel.TRAILING));
-            fileName = new JLabel();
-            fileDetailsValues.add(fileName);
-
-            fileDetailsLabels.add(new JLabel("Path", JLabel.TRAILING));
-            path = new JTextField(5);
-            path.setEditable(false);
-            fileDetailsValues.add(path);
-
-            fileDetailsLabels.add(new JLabel("Absolute size", JLabel.TRAILING));
-            absoluteSize = new JLabel();
-            fileDetailsValues.add(absoluteSize);
-
-            fileDetailsLabels.add(new JLabel("Node size", JLabel.TRAILING));
-            ownSize = new JLabel();
-            fileDetailsValues.add(ownSize);
-
-            fileDetailsLabels.add(new JLabel("Hash", JLabel.TRAILING));
-            hash = new JLabel();
-            fileDetailsValues.add(hash);
-
-
-            int count = fileDetailsLabels.getComponentCount();
-            for (int i = 0; i < count; i++) {
-                fileDetailsLabels.getComponent(i).setEnabled(false);
-            }
-
-            JToolBar toolBar = new JToolBar();
-            // mnemonics stop working in a floated toolbar
-            toolBar.setFloatable(false);
-
-            setFileDetails(rootNode);
-            showChildrenInTable(rootNode);
-
-            moveFile = new JButton("Move");
-            moveFile.setMnemonic('m');
-            moveFile.addActionListener(actionEvent -> fileAction(Move.class, moveFile));
-            toolBar.add(moveFile);
-
-            findDuplicates = new JButton("Find Duplicates");
-            findDuplicates.setMnemonic('d');
-            findDuplicates.addActionListener(actionEvent -> fileAction(FindDuplicates.class, findDuplicates));
-            toolBar.add(findDuplicates);
-
-            copyFile = new JButton("Copy");
-            copyFile.setMnemonic('c');
-            copyFile.addActionListener(actionEvent -> fileAction(Copy.class, copyFile));
-            toolBar.add(copyFile);
-
-            renameFile = new JButton("Rename");
-            renameFile.setMnemonic('r');
-            renameFile.addActionListener(actionEvent -> fileAction(Rename.class, renameFile));
-            toolBar.add(renameFile);
-
-            deleteFile = new JButton("Delete");
-            deleteFile.setMnemonic('d');
-            deleteFile.addActionListener(actionEvent -> fileAction(Delete.class, deleteFile));
-            toolBar.add(deleteFile);
-
-            createFolder = new JButton("Create Folder");
-            createFolder.setMnemonic('f');
-            createFolder.addActionListener(actionEvent -> fileAction(CreateFolder.class, createFolder));
-            toolBar.add(createFolder);
-
-            JPanel fileView = new JPanel(new BorderLayout(3, 3));
-            fileView.add(toolBar, BorderLayout.NORTH);
-            fileView.add(fileMainDetails, BorderLayout.CENTER);
-
-            detailView.add(fileView, BorderLayout.SOUTH);
-
-            JSplitPane splitPane = new JSplitPane(
-                    JSplitPane.HORIZONTAL_SPLIT,
-                    treeScroll,
-                    detailView);
-            gui.add(splitPane, BorderLayout.CENTER);
-
+            initTransactionPanel();
+            gui.add("Transactions", transactionsPanel);
         }
         return gui;
+    }
+
+    private void initFileBrowserPanel() {
+        fileBrowserPanel = new JPanel(new BorderLayout(3, 3));
+        fileBrowserPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        JPanel detailView = new JPanel(new BorderLayout(3, 3));
+
+        table = new JTable();
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setAutoCreateRowSorter(true);
+        table.setShowVerticalLines(false);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                Point point = e.getPoint();
+                int row = table.rowAtPoint(point);
+                if (e.getClickCount() == 2 && table.getSelectedRow() != -1) {
+                    Node node = ((NodeTableModel) table.getModel()).getFile(row);
+                    setFileDetails(node);
+                    showChildrenInTable(node);
+                    final TreePath treePath = node.getTreePath();
+                    tree.expandPath(treePath);
+                    tree.setSelectionPath(treePath);
+                }
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = table.getSelectionModel().getLeadSelectionIndex();
+                if (row > -1) {
+                    setFileDetails(((NodeTableModel) table.getModel()).getFile(row));
+                }
+            }
+        });
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                setFileDetails(((NodeTableModel) table.getModel()).getFile(1));
+                table.clearSelection();
+            }
+        });
+        Dimension d = tableScroll.getPreferredSize();
+        tableScroll.setPreferredSize(new Dimension((int) d.getWidth(), (int) d.getHeight() / 2));
+        detailView.add(tableScroll, BorderLayout.CENTER);
+
+        // the Node tree
+        treeModel = new DefaultTreeModel(rootNode);
+
+        TreeSelectionListener treeSelectionListener = tse -> {
+            Node node = (Node) tse.getPath().getLastPathComponent();
+            showChildrenInTable(node);
+            setFileDetails(node);
+        };
+
+        tree = new JTree(treeModel);
+        tree.setRootVisible(true);
+        tree.addTreeSelectionListener(treeSelectionListener);
+        tree.setCellRenderer(new NodeTreeCellRenderer());
+        tree.expandRow(0);
+        JScrollPane treeScroll = new JScrollPane(tree);
+
+        // as per trashgod tip
+//        tree.setVisibleRowCount(15);
+
+        Dimension preferredSize = treeScroll.getPreferredSize();
+        Dimension widePreferred = new Dimension(
+                200,
+                (int) preferredSize.getHeight());
+        treeScroll.setPreferredSize(widePreferred);
+
+        // details for a Node
+        JPanel fileMainDetails = new JPanel(new BorderLayout(4, 2));
+        fileMainDetails.setBorder(new EmptyBorder(0, 6, 0, 6));
+
+        JPanel fileDetailsLabels = new JPanel(new GridLayout(0, 1, 2, 2));
+        fileMainDetails.add(fileDetailsLabels, BorderLayout.WEST);
+
+        JPanel fileDetailsValues = new JPanel(new GridLayout(0, 1, 2, 2));
+        fileMainDetails.add(fileDetailsValues, BorderLayout.CENTER);
+
+        fileDetailsLabels.add(new JLabel("Name", JLabel.TRAILING));
+        fileName = new JLabel();
+        fileDetailsValues.add(fileName);
+
+        fileDetailsLabels.add(new JLabel("Path", JLabel.TRAILING));
+        path = new JTextField(5);
+        path.setEditable(false);
+        fileDetailsValues.add(path);
+
+        fileDetailsLabels.add(new JLabel("Absolute size", JLabel.TRAILING));
+        absoluteSize = new JLabel();
+        fileDetailsValues.add(absoluteSize);
+
+        fileDetailsLabels.add(new JLabel("Node size", JLabel.TRAILING));
+        ownSize = new JLabel();
+        fileDetailsValues.add(ownSize);
+
+        fileDetailsLabels.add(new JLabel("Hash", JLabel.TRAILING));
+        hash = new JLabel();
+        fileDetailsValues.add(hash);
+
+
+        int count = fileDetailsLabels.getComponentCount();
+        for (int i = 0; i < count; i++) {
+            fileDetailsLabels.getComponent(i).setEnabled(false);
+        }
+
+        JToolBar toolBar = new JToolBar();
+        // mnemonics stop working in a floated toolbar
+        toolBar.setFloatable(false);
+
+        setFileDetails(rootNode);
+        showChildrenInTable(rootNode);
+
+        moveFile = new JButton("Move");
+        moveFile.setMnemonic('m');
+        moveFile.addActionListener(actionEvent -> fileAction(Move.class, moveFile));
+        toolBar.add(moveFile);
+
+        findDuplicates = new JButton("Find Duplicates");
+        findDuplicates.setMnemonic('d');
+        findDuplicates.addActionListener(actionEvent -> fileAction(FindDuplicates.class, findDuplicates));
+        toolBar.add(findDuplicates);
+
+        copyFile = new JButton("Copy");
+        copyFile.setMnemonic('c');
+        copyFile.addActionListener(actionEvent -> fileAction(Copy.class, copyFile));
+        toolBar.add(copyFile);
+
+        renameFile = new JButton("Rename");
+        renameFile.setMnemonic('r');
+        renameFile.addActionListener(actionEvent -> fileAction(Rename.class, renameFile));
+        toolBar.add(renameFile);
+
+        deleteFile = new JButton("Delete");
+        deleteFile.setMnemonic('d');
+        deleteFile.addActionListener(actionEvent -> fileAction(Delete.class, deleteFile));
+        toolBar.add(deleteFile);
+
+        createFolder = new JButton("Create Folder");
+        createFolder.setMnemonic('f');
+        createFolder.addActionListener(actionEvent -> fileAction(CreateFolder.class, createFolder));
+        toolBar.add(createFolder);
+
+        JPanel fileView = new JPanel(new BorderLayout(3, 3));
+        fileView.add(toolBar, BorderLayout.NORTH);
+        fileView.add(fileMainDetails, BorderLayout.CENTER);
+
+        detailView.add(fileView, BorderLayout.SOUTH);
+
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                treeScroll,
+                detailView);
+        fileBrowserPanel.add(splitPane, BorderLayout.CENTER);
+    }
+
+    private void initTransactionPanel() {
+        transactionsPanel = new JPanel(new BorderLayout(3, 3));
+        transactionsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        JTable transactionTable = new JTable(new TransactionTableModel());
+        transactionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        transactionTable.setAutoCreateRowSorter(true);
+        transactionTable.setShowVerticalLines(false);
+        transactionsPanel.add(transactionTable, BorderLayout.CENTER);
     }
 
     private void fileAction(Class<? extends Transaction> action, JButton button) {
@@ -281,7 +303,7 @@ public class FileManager {
 
     public void showErrorMessage(String errorMessage, String errorTitle) {
         JOptionPane.showMessageDialog(
-                gui,
+                fileBrowserPanel,
                 errorMessage,
                 errorTitle,
                 JOptionPane.ERROR_MESSAGE
@@ -290,7 +312,7 @@ public class FileManager {
 
     public String showInputDialog(String message, String title) {
         return JOptionPane.showInputDialog(
-                gui,
+                fileBrowserPanel,
                 message,
                 title,
                 JOptionPane.QUESTION_MESSAGE
@@ -300,12 +322,12 @@ public class FileManager {
     public void showThrowable(Throwable t) {
         t.printStackTrace();
         JOptionPane.showMessageDialog(
-                gui,
+                fileBrowserPanel,
                 t.toString(),
                 t.getMessage(),
                 JOptionPane.ERROR_MESSAGE
         );
-        gui.repaint();
+        fileBrowserPanel.repaint();
     }
 
     private void setColumnWidth(int column, int width) {
@@ -332,7 +354,7 @@ public class FileManager {
      * Update the Node details view with the details of this Node.
      */
     private void setFileDetails(Node node) {
-        JFrame f = (JFrame) gui.getTopLevelAncestor();
+        JFrame f = (JFrame) fileBrowserPanel.getTopLevelAncestor();
         if (node != null) {
             Icon icon = node.isDirectory() ? folderClosedIcon : fileIcon;
             fileName.setIcon(icon);
@@ -354,7 +376,7 @@ public class FileManager {
                 f.setTitle(APP_TITLE);
             }
         }
-        gui.repaint();
+        fileBrowserPanel.repaint();
     }
 
     public void createAndShowGui() {
@@ -391,5 +413,6 @@ public class FileManager {
 
     public void update() {
         fileTableModel.fireTableDataChanged();
+        treeModel.reload(rootNode);
     }
 }

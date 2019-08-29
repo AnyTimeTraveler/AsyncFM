@@ -21,4 +21,8 @@ public class TransactionStore {
     public static void setFileManager(FileManager fileManager) {
         TransactionStore.fileManager = fileManager;
     }
+
+    public static List<Transaction> getTransactions() {
+        return transactions;
+    }
 }
