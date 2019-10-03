@@ -68,6 +68,9 @@ fn main() {
 
     let last_id = scanner::scan_directory(&options, &log);
 
+    if !options.hash_file.is_empty() {
+        hasher::build_hashed_image(&options, &log, last_id);
+    }
     drop(log);
     logger.join().expect("Error while waiting for the logger to finish!");
     println!("\n\nDone!\nScanned {} files in total!", last_id);
