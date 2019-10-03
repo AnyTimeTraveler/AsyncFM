@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::scanner::{FileMetadata, Progress, write_entry};
 
-pub fn read_file(id: &u64, parent_id: &u64, path: &PathBuf, buf: &mut BufWriter<fs::File>, log: &SyncSender<Progress>) {
+pub(crate) fn read_file(id: &u64, parent_id: &u64, path: &PathBuf, buf: &mut BufWriter<fs::File>, log: &SyncSender<Progress>) {
     let name = path.file_name().expect("Error reading filename!").to_str().expect("Error getting str for filename!");
     let path_string = path.as_os_str().to_str().expect("Error getting path string!").to_owned();
 

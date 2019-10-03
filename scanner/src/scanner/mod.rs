@@ -9,30 +9,43 @@ use byteorder::{BigEndian, WriteBytesExt};
 use linux_scanner::read_file;
 #[cfg(windows)]
 use windows_scanner::read_file;
+use crate::Options;
 
 #[cfg(unix)]
 mod linux_scanner;
 #[cfg(windows)]
 mod windows_scanner;
 
-pub struct Progress {
+pub(crate) struct Progress {
     pub id: u64,
     pub name: String,
 }
 
 #[derive(Debug)]
-pub struct Header<'t> {
-    version: u32,
-    flags: u8,
-    entries: u64,
-    base_path: &'t [u8],
+pub(crate) struct Header<'t> {
+    pub(crate) version: u32,
+    pub(crate) flags: u8,
+    /**
+    Flags: [1234 5678]
+
+    1: reserved
+    2: reserved
+    3: reserved
+    4: reserved
+    5: reserved
+    6: reserved
+    7: reserved
+    8: true if image has hashes
+    */
+    pub(crate) entries: u64,
+    pub(crate) base_path: &'t [u8],
 }
 
 #[derive(Debug)]
-pub struct FileMetadata<'t> {
-    id: u64,
-    parent_id: u64,
-    name: &'t [u8],
+pub(crate) struct FileMetadata<'t> {
+    pub(crate) id: u64,
+    pub(crate) parent_id: u64,
+    pub(crate) name: &'t [u8],
     /**
     Flags: [1234 5678]
 
@@ -45,29 +58,28 @@ pub struct FileMetadata<'t> {
     7: true if file
     8: true if directory
     */
-    flags: u8,
+    pub(crate) flags: u8,
     /**
     Mode: standard linux mode data.
     */
-    mode: u32,
-    uid: u32,
-    gid: u32,
-    size: u64,
-    created: i64,
-    modified: i64,
-    accessed: i64,
-    link_dest: &'t [u8],
-    hash: u32,
+    pub(crate) mode: u32,
+    pub(crate) uid: u32,
+    pub(crate) gid: u32,
+    pub(crate) size: u64,
+    pub(crate) created: i64,
+    pub(crate) modified: i64,
+    pub(crate) accessed: i64,
+    pub(crate) link_dest: &'t [u8],
+    pub(crate) hash: u32,
 }
 
-pub fn scan_directory(directory_to_scan: &Path,
-                      output_file: &Path,
-                      log: &SyncSender<Progress>) -> u64 {
+pub(crate) fn scan_directory(options: &Options, log: &SyncSender<Progress>) -> u64 {
+    let directory_to_scan = Path::new(&options.source_folder);
     let output_file = OpenOptions::new()
-        .read(true)
+        .read(false)
         .write(true)
         .create(true)
-        .open(output_file)
+        .open(Path::new(&options.target_file))
         .expect("Can't open target file!");
 
     let mut buf = BufWriter::new(output_file);
@@ -87,13 +99,13 @@ pub fn scan_directory(directory_to_scan: &Path,
 
     header.entries = entries_read_count;
 
-    update_header(&header,&mut buf);
+    update_header(&header, &mut buf);
     buf.flush().expect("Error flushing target file!");
 
     entries_read_count
 }
 
-fn write_header(header: &Header, buf: &mut BufWriter<File>) {
+pub(crate) fn write_header(header: &Header, buf: &mut BufWriter<File>) {
     buf.seek(SeekFrom::Start(0)).expect("Error seeking in file!");
     buf.write_u32::<BigEndian>(header.version).expect("Error writing header!");
     buf.write_u8(header.flags).expect("Error writing flags!");
@@ -144,7 +156,7 @@ fn visit_dirs(parent_id: u64,
     return id;
 }
 
-pub fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
+fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
     buf.write_u64::<BigEndian>(file.id).expect("Error writing id!");
     buf.write_u64::<BigEndian>(file.parent_id).expect("Error writing parent id!");
     buf.write_all(file.name).expect("Error writing name!");
