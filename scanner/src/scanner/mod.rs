@@ -23,7 +23,7 @@ pub(crate) struct Progress {
 
 #[derive(Debug)]
 pub(crate) struct Header<'t> {
-    pub(crate) version: u32,
+    pub(crate) version: u8,
     pub(crate) flags: u8,
     /**
     Flags: [1234 5678]
@@ -47,18 +47,12 @@ pub(crate) struct FileMetadata<'t> {
     pub(crate) parent_id: u64,
     pub(crate) name: &'t [u8],
     /**
-    Flags: [1234 5678]
-
-    1: reserved
-    2: reserved
-    3: reserved
-    4: reserved
-    5: true if hash exists
-    6: true if symlink
-    7: true if file
-    8: true if directory
+    Flags:
     */
-    pub(crate) flags: u8,
+    pub(crate) hash_exists: bool,
+    pub(crate) is_symlink: bool,
+    pub(crate) is_file: bool,
+    pub(crate) is_directory: bool,
     /**
     Mode: standard linux mode data.
     */
@@ -85,7 +79,7 @@ pub(crate) fn scan_directory(options: &Options, log: &SyncSender<Progress>) -> u
     let mut buf = BufWriter::new(output_file);
 
     let mut header = Header {
-        version: 1u32,
+        version: 1u8,
         flags: 0u8,
         entries: 0u64,
         base_path: directory_to_scan.to_str().unwrap().as_bytes(),
@@ -107,7 +101,7 @@ pub(crate) fn scan_directory(options: &Options, log: &SyncSender<Progress>) -> u
 
 pub(crate) fn write_header(header: &Header, buf: &mut BufWriter<File>) {
     buf.seek(SeekFrom::Start(0)).expect("Error seeking in file!");
-    buf.write_u32::<BigEndian>(header.version).expect("Error writing header!");
+    buf.write_u8(header.version).expect("Error writing header!");
     buf.write_u8(header.flags).expect("Error writing flags!");
     buf.write_u64::<BigEndian>(header.entries).expect("Error writing entries!");
     buf.write_all(header.base_path).expect("Error writing base path!");
@@ -162,7 +156,7 @@ fn write_entry(buf: &mut BufWriter<File>, file: &FileMetadata) {
     buf.write_all(file.name).expect("Error writing name!");
     buf.write_u8(0u8).expect("Error writing null byte at the end of a name string!");
 
-    buf.write_u8(file.flags).expect("Error writing flags!");
+    buf.write_u8(file).expect("Error writing flags!");
     buf.write_u32::<BigEndian>(file.mode).expect("Error writing mode!");
     buf.write_u32::<BigEndian>(file.uid).expect("Error writing uid!");
     buf.write_u32::<BigEndian>(file.gid).expect("Error writing gid!");

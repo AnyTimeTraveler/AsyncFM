@@ -9,3 +9,4 @@
 *.iws
 *.data
 /testdata/
+/scanner/.idea/

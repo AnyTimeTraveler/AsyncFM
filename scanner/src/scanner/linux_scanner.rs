@@ -19,7 +19,10 @@ pub(crate) fn read_file(id: &u64, parent_id: &u64, path: &PathBuf, buf: &mut Buf
             id: *id,
             parent_id: *parent_id,
             name: name.as_bytes(),
-            flags: 0b10000000,
+            hash_exists: false,
+            is_symlink: false,
+            is_file: false,
+            is_directory: false,
             mode: 0,
             uid: 0,
             gid: 0,
@@ -32,23 +35,15 @@ pub(crate) fn read_file(id: &u64, parent_id: &u64, path: &PathBuf, buf: &mut Buf
         },
         Ok(meta) => {
             let file_type = meta.file_type();
-            let mut flags = 0b00000000;
-
-            if file_type.is_dir() {
-                flags |= 0b00000001;
-            }
-            if file_type.is_file() {
-                flags |= 0b00000010;
-            }
-            if file_type.is_symlink() {
-                flags |= 0b00000100;
-            }
 
             FileMetadata {
                 id: *id,
                 parent_id: *parent_id,
                 name: name.as_bytes(),
-                flags,
+                hash_exists: false,
+                is_symlink: file_type.is_symlink(),
+                is_file: file_type.is_file(),
+                is_directory: file_type.is_dir(),
                 mode: meta.st_mode(),
                 uid: meta.st_uid(),
                 gid: meta.st_gid(),
