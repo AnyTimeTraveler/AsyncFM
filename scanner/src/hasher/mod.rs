@@ -3,13 +3,13 @@ use std::fs;
 use std::io::{Read, Error, BufWriter, BufReader};
 use std::time::Instant;
 use crate::scanner::{Progress, Header, FileMetadata, write_header};
-use std::sync::mpsc::SyncSender;
+use std::sync::mpsc::{SyncSender, Sender};
 use crate::Options;
 use std::path::Path;
 use std::fs::{OpenOptions, File};
 use byteorder::{BigEndian, ReadBytesExt};
 
-pub(crate) fn build_hashed_image(options: &Options, log: &SyncSender<Progress>, last_id: u64) {
+pub(crate) fn build_hashed_image(options: &Options, log: &Sender<Progress>, last_id: u64) {
     let directory_to_scan = Path::new(&options.source_folder);
 
     let input_file = OpenOptions::new()
@@ -92,7 +92,7 @@ fn process_entry(buf: &mut BufReader<File>) -> FileMetadata {
 }
 
 pub(crate) fn hash(file: String, id: u64, log: &SyncSender<Progress>) -> Result<u32, Error> {
-    let _ = log.try_send(Progress { id, name: file.to_string() });
+    let _ = log.try_send(Progress { id, path: file.to_string() });
     let mut hasher = Hasher::new();
     let mut scanned_file = fs::File::open(&file)?;
     let mut buffer = [0u8; 1024];
@@ -103,7 +103,7 @@ pub(crate) fn hash(file: String, id: u64, log: &SyncSender<Progress>) -> Result<
         count = scanned_file.read(&mut buffer[..])?;
         hasher.update(&buffer[0..count]);
         if start_time.elapsed().as_secs() > 5 {
-            let _ = log.try_send(Progress { id, name: file.to_string() });
+            let _ = log.try_send(Progress { id, path: file.to_string() });
             start_time = Instant::now();
         }
     }

@@ -9,7 +9,7 @@ pub fn read_file(id: &u64, parent_id: &u64, entry: &DirEntry, buf: &mut BufWrite
     let name = entry.file_name();
     let name = name.to_str().unwrap();
 
-    log.try_send(Progress { id: *id, name: name.to_string() });
+    log.try_send(Progress { id: *id, path: name.to_string() });
 
     let name = name.as_bytes();
 

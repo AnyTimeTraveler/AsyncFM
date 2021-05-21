@@ -1,15 +1,20 @@
 extern crate argparse;
+#[macro_use]
+extern crate bitflags;
 
-use std::sync::mpsc::{Receiver, sync_channel};
-use std::thread::{sleep, spawn};
-use std::time::Duration;
+use std::sync::mpsc::{channel, Receiver};
+use std::thread::spawn;
+use std::time::{Duration, SystemTime};
 
-use argparse::{ArgumentParser, StoreTrue, Store};
+use ansi_escapes;
+use ansi_escapes::{CursorHide, CursorLeft, CursorPrevLine, CursorShow, EraseLine};
+use argparse::{ArgumentParser, Store, StoreTrue};
+use num_format::{Locale, ToFormattedString};
 
-use crate::scanner::Progress;
+use crate::scanner::{Log, Scanner};
 
 mod scanner;
-mod hasher;
+// mod hasher;
 
 pub(crate) struct Options {
     pub silent: bool,
@@ -27,7 +32,7 @@ fn main() {
         target_file: "".to_string(),
         hash_file: "".to_string(),
         source_folder: "".to_string(),
-        lograte: 250,
+        lograte: 100,
     };
 
     {  // this block limits scope of borrows by ap.refer() method
@@ -37,41 +42,52 @@ fn main() {
         ap.refer(&mut options.follow_symlinks).add_option(&["-f", "--follow-symlinks"], StoreTrue, "Follow symlinks");
         ap.refer(&mut options.lograte).add_option(&["-l", "--lograte"], Store, "Output a log entry every x milliseconds. (Default: 250)");
         ap.refer(&mut options.source_folder).add_argument("source", Store, "Folder to scan").required();
-        ap.refer(&mut options.target_file).add_argument("target", Store, "Path of the image file to write").required();
+        ap.refer(&mut options.target_file).add_argument("target", Store, "Path of the image file to write, without extension").required();
         ap.refer(&mut options.hash_file).add_argument("hash", Store, "If specified, the program will generate a second file, which contains the same image, but with the hash for each file to allow better deduplication (may take significantly longer)");
         ap.parse_args_or_exit();
     }
 
-    println!("Source: {}\nTarget: {}", options.source_folder, options.target_file);
+    println!("Source: {}\nTarget: {}\n", options.source_folder, options.target_file);
 
-    let (log, rx) = sync_channel(0);
+    eprint!("{}", CursorHide);
+
+    let (log, rx) = channel();
 
     let lograte = options.lograte;
     // Spawn logger
     let logger = spawn(move || {
-        let mut last_id = 0;
-        let mut action = "Scanning";
-        let rx: Receiver<Progress> = rx;
-        for p in rx {
-            if p.id < last_id {
-                action = "Hashing";
+        let mut count = 0;
+        let rx: Receiver<Log> = rx;
+        let mut time = SystemTime::now();
+        for log in rx {
+            match log {
+                Log::Progress { id, path } => {
+                    if time.elapsed().unwrap() > Duration::from_millis(lograte) {
+                        time = SystemTime::now();
+                        eprint!("{}{}Scanning... {:>12} : {:>9} items/s => {}", EraseLine, CursorLeft, id.to_formatted_string(&Locale::de), (count * 1000 / lograte).to_formatted_string(&Locale::de), path);
+                        count = 0;
+                    } else {
+                        count += 1;
+                    }
+                }
+                Log::Error(error) => {
+                    eprint!("\n{}{}{}{}{}\n\n", CursorPrevLine, EraseLine, CursorPrevLine, CursorLeft, error)
+                }
             }
-            if last_id == p.id {
-                print!(".");
-            } else {
-                print!("\n{}... {:>9} : {:>6} items/s => {}", action, p.id, (p.id - last_id) * 1000 / lograte, p.name);
-                last_id = p.id;
-            }
-            sleep(Duration::from_millis(lograte));
         }
     });
 
-    let last_id = scanner::scan_directory(&options, &log);
+    let amount_entries_read = {
+        let mut scanner = Scanner::new(options, log);
+        scanner.scan();
+        scanner.amount_entries_read()
+    };
 
-    if !options.hash_file.is_empty() {
-        hasher::build_hashed_image(&options, &log, last_id);
-    }
-    drop(log);
+    // if !options.hash_file.is_empty() {
+    //     hasher::build_hashed_image(&options, &log, last_id);
+    // }
     logger.join().expect("Error while waiting for the logger to finish!");
-    println!("\n\nDone!\nScanned {} files in total!", last_id);
+    println!("\n\nDone!\nScanned {} files in total!", amount_entries_read.to_formatted_string(&Locale::de));
+
+    eprint!("{}", CursorShow);
 }
