@@ -1,12 +1,9 @@
-use std::fs::{File, OpenOptions};
-use std::fs;
-use std::io::{BufWriter, Seek, SeekFrom, Write};
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufWriter, Write};
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
-
-use byteorder::{BigEndian, WriteBytesExt};
 
 use crate::Options;
 use crate::scanner::file_metadata::{FileFlags, FileMetadata};
@@ -28,47 +25,39 @@ pub(crate) struct Scanner {
     root_path: PathBuf,
     log: Sender<Log>,
     entry_read_counter: u64,
-    entries_out: BufWriter<File>,
-    strings_out: BufWriter<File>,
+    output: BufWriter<File>,
 }
 
 impl Scanner {
     pub(crate) fn new(options: Options, log: Sender<Log>) -> Scanner {
-        let output_entries_file = OpenOptions::new()
+        let output_file = OpenOptions::new()
             .read(false)
             .write(true)
             .create(true)
-            .open(Path::new(&format!("{}.entry_data", options.target_file)))
-            .expect("Can't open target file!");
-        let output_strings_file = OpenOptions::new()
-            .read(false)
-            .write(true)
-            .create(true)
-            .open(Path::new(&format!("{}.strings", options.target_file)))
-            .expect("Can't open target file!");
+            .open(Path::new(&options.target_file))
+            .expect("Can't open target combined file!");
 
         Scanner {
             root_path: Path::new(&options.source_folder).to_path_buf(),
             log,
             entry_read_counter: 0,
-            entries_out: BufWriter::new(output_entries_file),
-            strings_out: BufWriter::new(output_strings_file),
+            output: BufWriter::new(output_file),
         }
     }
 
     pub(crate) fn scan(&mut self) {
         let mut header = Header::new(&self.root_path);
 
-        write_header(&header, &mut self.entries_out);
+        header.write(&mut self.output);
 
         self.visit_file(0, &self.root_path.clone());
-        self.entries_out.flush().expect("Error flushing target file!");
+        self.output.flush().expect("Error flushing target file!");
 
         header.entries = self.entry_read_counter;
 
-        write_header(&header, &mut self.entries_out);
+        header.write(&mut self.output);
 
-        self.entries_out.flush().expect("Error flushing target file!");
+        self.output.flush().expect("Error flushing target file!");
     }
 
     fn visit_file(&mut self, parent_id: u64, dir: &Path) {
@@ -163,19 +152,10 @@ impl Scanner {
             }
         };
 
-        file.write_entry(&mut self.entries_out, &mut self.strings_out);
+        file.write_entry(&mut self.output);
     }
 
-    pub fn amount_entries_read(&self) -> u64 {
+    pub(crate) fn amount_entries_read(&self) -> u64 {
         self.entry_read_counter
     }
-}
-
-fn write_header(header: &Header, buf: &mut BufWriter<File>) {
-    buf.seek(SeekFrom::Start(0)).expect("Error seeking in file!");
-    buf.write_u8(header.version).expect("Error writing header!");
-    buf.write_u8(header.flags.bits()).expect("Error writing flags!");
-    buf.write_u64::<BigEndian>(header.entries).expect("Error writing entries!");
-    buf.write_u64::<BigEndian>(header.base_path.len() as u64).expect("Error writing entries!");
-    buf.write_all(&header.base_path).expect("Error writing base path!");
 }

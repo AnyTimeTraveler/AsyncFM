@@ -7,13 +7,14 @@ import javax.swing.tree.TreePath;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.InvalidParameterException;
+import java.time.Instant;
 import java.util.*;
 
 import static org.simonscode.asyncfm.data.StructUtils.readString;
 
 public class Node implements TreeNode {
 
-    private static long largestId;
+    private static long entriesCount;
 
     long id;            //  u64
     long parent_id;     //  u64
@@ -63,10 +64,6 @@ public class Node implements TreeNode {
         link_dest = readString(dis);
         hash = dis.readInt();
         marked = false;
-
-        if (id > largestId) {
-            largestId = id;
-        }
     }
 
     /**
@@ -82,7 +79,7 @@ public class Node implements TreeNode {
         children = new ArrayList<>();
 
         this.parent = null;
-        this.id = ++largestId;
+        this.id = ++entriesCount;
         this.parent_id = 0L;
         this.name = node.name;
         this.flags = node.flags;
@@ -106,7 +103,7 @@ public class Node implements TreeNode {
         children = new ArrayList<>();
 
         this.parent = null;
-        this.id = ++largestId;
+        this.id = ++entriesCount;
         this.parent_id = 0L;
         this.name = name;
         // TODO: Replace with configurable values
@@ -116,10 +113,10 @@ public class Node implements TreeNode {
         this.gid = parent.gid;
         this.size = 0L;
         // TODO: Replace with current time
-        this.created = 0;
-        this.modified = 0;
-        this.accessed = 0;
-        this.link_dest = "";
+        this.created = Instant.now().getEpochSecond();
+        this.modified = Instant.now().getEpochSecond();
+        this.accessed = Instant.now().getEpochSecond();
+        this.link_dest = null;
         this.hash = 0;
         this.marked = false;
     }
@@ -372,6 +369,11 @@ public class Node implements TreeNode {
     public void setMarked(boolean marked) {
         this.marked = marked;
     }
+
+    public static void setEntriesCount(long entriesCount) {
+        Node.entriesCount = entriesCount;
+    }
+
     //=======================//
     //  Common Java Methods  //
     //=======================//

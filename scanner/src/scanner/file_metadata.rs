@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufWriter, Seek, Write};
+use std::io::{BufWriter, Write};
 
 use byteorder::{BigEndian, WriteBytesExt};
 
@@ -32,34 +32,31 @@ pub(crate) struct FileMetadata {
 }
 
 impl FileMetadata {
-    pub(crate) fn write_entry(&self, entries_out: &mut BufWriter<File>, strings_out: &mut BufWriter<File>) {
-        entries_out.write_u64::<BigEndian>(self.id).expect("Error writing id!");
-        entries_out.write_u64::<BigEndian>(self.parent_id).expect("Error writing parent id!");
+    pub(crate) fn write_entry(&self, output: &mut BufWriter<File>) {
+        output.write_u64::<BigEndian>(self.id).expect("Error writing id!");
+        output.write_u64::<BigEndian>(self.parent_id).expect("Error writing parent id!");
 
-        let name_pos: u64 = strings_out.stream_position().expect("Error retrieving stream position!");
-        strings_out.write_all(self.name.as_bytes()).expect("Error writing name!");
-        entries_out.write_u64::<BigEndian>(name_pos).expect("Error writing name position!");
-        entries_out.write_u64::<BigEndian>(self.name.as_bytes().len() as u64).expect("Error writing length of the name string!");
+        let name_bytes = self.name.as_bytes();
+        output.write_u32::<BigEndian>(name_bytes.len() as u32).expect("Error writing length of the name string!");
+        output.write_all(name_bytes).expect("Error writing name!");
 
-        entries_out.write_u8(self.flags.bits()).expect("Error writing flags!");
-        entries_out.write_u32::<BigEndian>(self.mode).expect("Error writing mode!");
-        entries_out.write_u32::<BigEndian>(self.uid).expect("Error writing uid!");
-        entries_out.write_u32::<BigEndian>(self.gid).expect("Error writing gid!");
-        entries_out.write_u64::<BigEndian>(self.size).expect("Error writing size!");
-        entries_out.write_i64::<BigEndian>(self.created).expect("Error writing created!");
-        entries_out.write_i64::<BigEndian>(self.modified).expect("Error writing modified!");
-        entries_out.write_i64::<BigEndian>(self.accessed).expect("Error writing accessed!");
+        output.write_u8(self.flags.bits()).expect("Error writing flags!");
+        output.write_u32::<BigEndian>(self.mode).expect("Error writing mode!");
+        output.write_u32::<BigEndian>(self.uid).expect("Error writing uid!");
+        output.write_u32::<BigEndian>(self.gid).expect("Error writing gid!");
+        output.write_u64::<BigEndian>(self.size).expect("Error writing size!");
+        output.write_i64::<BigEndian>(self.created).expect("Error writing created!");
+        output.write_i64::<BigEndian>(self.modified).expect("Error writing modified!");
+        output.write_i64::<BigEndian>(self.accessed).expect("Error writing accessed!");
 
         if let Some(link_dest) = &self.link_dest {
-            let link_dest_pos: u64 = strings_out.stream_position().expect("Error retrieving stream position!");
-            strings_out.write_all(link_dest.as_bytes()).expect("Error writing link dest!");
-            entries_out.write_u64::<BigEndian>(link_dest_pos).expect("Error writing link dest position!");
-            entries_out.write_u64::<BigEndian>(link_dest.as_bytes().len() as u64).expect("Error writing length of the link dest string!");
+            let link_bytes = link_dest.as_bytes();
+            output.write_u32::<BigEndian>(link_bytes.len() as u32).expect("Error writing length of the link dest string!");
+            output.write_all(link_bytes).expect("Error writing link dest!");
         } else {
-            entries_out.write_u64::<BigEndian>(0).expect("Error writing link dest position!");
-            entries_out.write_u64::<BigEndian>(0).expect("Error writing length of the link dest string!");
+            output.write_u32::<BigEndian>(0).expect("Error writing link dest position!");
         }
 
-        entries_out.write_u32::<BigEndian>(self.hash.unwrap_or(0)).expect("Error while writing hash!");
+        output.write_u32::<BigEndian>(self.hash.unwrap_or(0)).expect("Error while writing hash!");
     }
 }

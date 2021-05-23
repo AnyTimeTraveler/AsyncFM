@@ -1,6 +1,5 @@
 package org.simonscode.asyncfm;
 
-import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.data.StructUtils;
 import org.simonscode.asyncfm.data.TransactionStore;
 import org.simonscode.asyncfm.gui.FileManager;
@@ -16,11 +15,10 @@ public class Manager {
             return;
         }
 
-        FileInputStream fis = new FileInputStream(args[0]);
-        StructUtils walker = new StructUtils(fis, true);
-        Node root = walker.readTree();
+        var fis = new FileInputStream(args[0]);
+        var walker = new StructUtils(fis, true);
 
-        FileManager fileManager = new FileManager(root);
+        var fileManager = new FileManager(walker.readTree());
         TransactionStore.setFileManager(fileManager);
         fileManager.createAndShowGui();
     }

@@ -76,7 +76,6 @@ fn main() {
             }
         }
     });
-
     let amount_entries_read = {
         let mut scanner = Scanner::new(options, log);
         scanner.scan();

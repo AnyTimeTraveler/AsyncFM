@@ -11,5 +11,6 @@ public class HeaderV1 extends Header {
         flags = dis.readByte();
         entries = dis.readLong();
         basePath = readString(dis);
+        System.out.println(basePath);
     }
 }

@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class TransactionCreator {
 
     private static Node firstSelection;
-    private static ArrayList<ResetAction> resetActions = new ArrayList<>();
+    private static final ArrayList<ResetAction> resetActions = new ArrayList<>();
 
     public static void handleClick(Class<? extends Transaction> action, JButton button, Node node, FileManager fileManager) {
         if (action == Copy.class || action == Move.class) {

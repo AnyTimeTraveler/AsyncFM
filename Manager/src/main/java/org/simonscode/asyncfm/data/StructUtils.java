@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -22,6 +22,7 @@ public class StructUtils {
         dis = new DataInputStream(is);
         nodes = new ArrayList<>();
         header = Header.fromBytes(dis);
+        Node.setEntriesCount(header.getEntries());
         loadingDialog = new LoadingDialog(header.getEntries());
 
         if (showDialog) {
@@ -37,7 +38,7 @@ public class StructUtils {
         // Read all nodes
         System.out.print("Reading data...");
         for (long i = 0; dis.available() > 0; i++) {
-            Node node = new Node(dis);
+            var node = new Node(dis);
             nodes.add(node);
             loadingDialog.setProgress(0, i);
         }
@@ -112,18 +113,16 @@ public class StructUtils {
     }
 
     public static String readString(DataInputStream dis) throws IOException {
-        byte[] data = new byte[1024];
-        byte read = dis.readByte();
-        int i;
-        for (i = 0; read != 0; i++) {
-            if (i == data.length) {
-                byte[] replacement = new byte[data.length + 1024];
-                System.arraycopy(data, 0, replacement, 0, data.length);
-                data = replacement;
-            }
-            data[i] = read;
-            read = dis.readByte();
+        byte[] data = new byte[dis.readInt()];
+
+        if (data.length == 0) {
+            return null;
         }
-        return new String(data, 0, i, Charset.forName("UTF-8"));
+
+        int bytesRead = dis.read(data, 0, data.length);
+        if (bytesRead != data.length) {
+            throw new IOException("Failed to read");
+        }
+        return new String(data, 0, data.length, StandardCharsets.UTF_8);
     }
 }

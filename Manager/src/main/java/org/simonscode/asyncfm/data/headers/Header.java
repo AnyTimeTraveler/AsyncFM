@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class Header {
 
-    private int version;
+    private final int version;
     byte flags;
     long entries;
     String basePath;
@@ -15,13 +15,13 @@ public class Header {
     }
 
     public static Header fromBytes(DataInputStream dis) throws IOException {
-        int version = dis.readInt();
+        byte version = dis.readByte();
 
         switch (version) {
             case 1:
                 return new HeaderV1(dis);
             default:
-                throw new IOException("Unknown version!");
+                throw new IOException("Unknown version: " + version);
         }
     }
 
