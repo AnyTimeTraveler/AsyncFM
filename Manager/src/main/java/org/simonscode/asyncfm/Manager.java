@@ -1,25 +1,24 @@
 package org.simonscode.asyncfm;
 
-import org.simonscode.asyncfm.data.StructUtils;
-import org.simonscode.asyncfm.data.TransactionStore;
-import org.simonscode.asyncfm.gui.FileManager;
+import org.simonscode.asyncfm.gui.AsyncFMFrame;
 
-import java.io.FileInputStream;
-import java.io.IOException;
+import javax.swing.*;
 
 public class Manager {
-    public static void main(String[] args) throws IOException {
-
-        if (args.length != 1) {
-            System.err.println("Arguments: <input file>");
-            return;
+    public static void main(String[] args) {
+        try {
+            // Significantly improves the look of the output in
+            // terms of the node names returned by FileSystemView!
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {
         }
 
-        var fis = new FileInputStream(args[0]);
-        var walker = new StructUtils(fis, true);
-
-        var fileManager = new FileManager(walker.readTree());
-        TransactionStore.setFileManager(fileManager);
-        fileManager.createAndShowGui();
+        AsyncFMFrame frame;
+        if (args.length == 1) {
+            frame = new AsyncFMFrame(args[0]);
+        } else {
+            frame = new AsyncFMFrame();
+        }
+        frame.setVisible(true);
     }
 }

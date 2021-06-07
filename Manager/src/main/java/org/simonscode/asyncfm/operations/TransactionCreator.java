@@ -2,7 +2,7 @@ package org.simonscode.asyncfm.operations;
 
 import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.data.TransactionStore;
-import org.simonscode.asyncfm.gui.FileManager;
+import org.simonscode.asyncfm.gui.AsyncFMFrame;
 
 import javax.swing.*;
 import java.lang.reflect.InvocationTargetException;
@@ -13,7 +13,7 @@ public class TransactionCreator {
     private static Node firstSelection;
     private static final ArrayList<ResetAction> resetActions = new ArrayList<>();
 
-    public static void handleClick(Class<? extends Transaction> action, JButton button, Node node, FileManager fileManager) {
+    public static void handleClick(Class<? extends Transaction> action, JButton button, Node node, AsyncFMFrame frame) {
         if (action == Copy.class || action == Move.class) {
             if (firstSelection == null) {
                 resetActions.add(new ResetAction(button));
@@ -23,7 +23,7 @@ public class TransactionCreator {
                 try {
                     TransactionStore.addTransaction(action.getConstructor(Node.class, Node.class).newInstance(firstSelection, node));
                 } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                    fileManager.showThrowable(e);
+                    frame.showThrowable(e);
                 }
                 resetState();
             }
@@ -31,18 +31,18 @@ public class TransactionCreator {
             try {
                 TransactionStore.addTransaction(action.getConstructor(Node.class).newInstance(node));
             } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                fileManager.showThrowable(e);
+                frame.showThrowable(e);
             }
             resetState();
         } else if (action == Rename.class || action == CreateFolder.class) {
-            String name = fileManager.showInputDialog("Please enter a name:", "Rename");
+            String name = frame.showInputDialog("Please enter a name:", "Rename");
             if (name == null || name.contains("/")) {
-                fileManager.showErrorMessage("Invalid name! Renaming aborted.", "Rename");
+                frame.showErrorMessage("Invalid name! Renaming aborted.", "Rename");
             } else {
                 try {
                     TransactionStore.addTransaction(action.getConstructor(Node.class, String.class).newInstance(node, name));
                 } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                    fileManager.showThrowable(e);
+                    frame.showThrowable(e);
                 }
                 resetState();
             }

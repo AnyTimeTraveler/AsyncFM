@@ -99,7 +99,8 @@ public class LoadingDialog {
         }
     }
 
-    public void show() {
+    public void show(AsyncFMFrame parent) {
+        dlg.setLocationRelativeTo(parent);
         dlg.setVisible(true);
     }
 

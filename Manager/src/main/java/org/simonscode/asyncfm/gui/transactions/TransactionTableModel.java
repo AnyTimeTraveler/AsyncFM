@@ -1,4 +1,4 @@
-package org.simonscode.asyncfm.gui;
+package org.simonscode.asyncfm.gui.transactions;
 
 import org.simonscode.asyncfm.data.TransactionStore;
 import org.simonscode.asyncfm.operations.Transaction;
@@ -11,7 +11,7 @@ import javax.swing.table.AbstractTableModel;
  */
 class TransactionTableModel extends AbstractTableModel {
 
-    private String[] columns = {
+    private final String[] columns = {
             "Action",
             ""
     };

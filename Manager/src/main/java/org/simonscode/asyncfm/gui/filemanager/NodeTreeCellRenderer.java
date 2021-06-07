@@ -1,7 +1,8 @@
-package org.simonscode.asyncfm.gui;
+package org.simonscode.asyncfm.gui.filemanager;
 
 
 import org.simonscode.asyncfm.data.Node;
+import org.simonscode.asyncfm.gui.Icons;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -12,7 +13,7 @@ import java.awt.*;
  */
 class NodeTreeCellRenderer extends DefaultTreeCellRenderer {
 
-    private JLabel label;
+    private final JLabel label;
 
     NodeTreeCellRenderer() {
         label = new JLabel();
@@ -30,13 +31,13 @@ class NodeTreeCellRenderer extends DefaultTreeCellRenderer {
             boolean hasFocus) {
 
         Node node = (Node) value;
-        label.setIcon(node.isDirectory() ? FileManager.folderClosedIcon : FileManager.fileIcon);
+        label.setIcon(node.isDirectory() ? Icons.folderClosedIcon : Icons.fileIcon);
         label.setText(node.getName());
         label.setToolTipText(node.getPath());
 
         if (selected) {
             if (node.isDirectory()) {
-                label.setIcon(FileManager.folderOpenIcon);
+                label.setIcon(Icons.folderOpenIcon);
             }
             label.setBackground(backgroundNonSelectionColor);
             label.setBackground(backgroundSelectionColor);

@@ -8,5 +8,6 @@
 *.iml
 *.iws
 *.data
+*.adat
 /testdata/
 /scanner/.idea/

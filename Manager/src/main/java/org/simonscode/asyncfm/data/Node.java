@@ -10,37 +10,28 @@ import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.util.*;
 
-import static org.simonscode.asyncfm.data.StructUtils.readString;
+import static org.simonscode.asyncfm.data.NodeWalker.readString;
 
 public class Node implements TreeNode {
 
     private static long entriesCount;
 
-    long id;            //  u64
-    long parent_id;     //  u64
-    String name;        //  &'t[u8]
-    /**
-     * Flags: [1234 5678]
-     * <p>
-     * 1: reserved
-     * 2: reserved
-     * 3: reserved
-     * 4: reserved
-     * 5: true if hash exists
-     * 6: true if symlink
-     * 7: true if file
-     * 8: true if directory
-     */
-    private byte flags;         //  u8
-    private int mode;           //  u32
-    private int uid;            //  u32
-    private int gid;            //  u32
-    private long size;          //  u64
-    private long created;       //  i64
-    private long modified;      //  i64
-    private long accessed;      //  i64
-    private String link_dest;   //  &'t[u8]
-    private int hash;           //  u32
+    long id;                        //  u64
+    long parentId;                  //  u64
+    String name;                    //  &[u8]
+    // private byte flags;          //  u8
+    private boolean isSymlink;
+    private boolean isFile;
+    private boolean isDirectory;
+    private int mode;               //  u32
+    private int uid;                //  u32
+    private int gid;                //  u32
+    private long size;              //  u64
+    private long created;           //  i64
+    private long modified;          //  i64
+    private long accessed;          //  i64
+    private String linkDestination; //  &[u8]
+    private int hash;               //  u32
 
     private Node parent;
     private final List<Node> children;
@@ -51,9 +42,9 @@ public class Node implements TreeNode {
 
         parent = null;
         id = dis.readLong();
-        parent_id = dis.readLong();
+        parentId = dis.readLong();
         name = readString(dis);
-        flags = dis.readByte();
+        parseFlags(dis.readByte());
         mode = dis.readInt();
         uid = dis.readInt();
         gid = dis.readInt();
@@ -61,7 +52,7 @@ public class Node implements TreeNode {
         created = dis.readLong();
         modified = dis.readLong();
         accessed = dis.readLong();
-        link_dest = readString(dis);
+        linkDestination = readString(dis);
         hash = dis.readInt();
         marked = false;
     }
@@ -80,9 +71,11 @@ public class Node implements TreeNode {
 
         this.parent = null;
         this.id = ++entriesCount;
-        this.parent_id = 0L;
+        this.parentId = 0L;
         this.name = node.name;
-        this.flags = node.flags;
+        this.isSymlink = node.isSymlink;
+        this.isFile = node.isFile;
+        this.isDirectory = node.isDirectory;
         this.mode = node.mode;
         this.uid = node.uid;
         this.gid = node.gid;
@@ -90,7 +83,7 @@ public class Node implements TreeNode {
         this.created = node.created;
         this.modified = node.modified;
         this.accessed = node.accessed;
-        this.link_dest = node.link_dest;
+        this.linkDestination = node.linkDestination;
         this.hash = node.hash;
         this.marked = node.marked;
 
@@ -99,26 +92,38 @@ public class Node implements TreeNode {
         }
     }
 
-    public Node(Node parent, String name) {
+    public Node(Node parent, String name, boolean isDirectory) {
         children = new ArrayList<>();
 
         this.parent = null;
         this.id = ++entriesCount;
-        this.parent_id = 0L;
+        this.parentId = 0L;
         this.name = name;
-        // TODO: Replace with configurable values
-        this.flags = parent.flags;
+        this.isSymlink = false;
+        this.isFile = !isDirectory;
+        this.isDirectory = isDirectory;
         this.mode = parent.mode;
         this.uid = parent.uid;
         this.gid = parent.gid;
         this.size = 0L;
-        // TODO: Replace with current time
         this.created = Instant.now().getEpochSecond();
         this.modified = Instant.now().getEpochSecond();
         this.accessed = Instant.now().getEpochSecond();
-        this.link_dest = null;
+        this.linkDestination = null;
         this.hash = 0;
         this.marked = false;
+    }
+
+    public Node(Node parent, String name, String linkDestination) {
+        this(parent, name, false);
+        this.linkDestination = linkDestination;
+        this.isSymlink = true;
+        this.isFile = false;
+        this.isDirectory = false;
+    }
+
+    public static long getEntriesCount() {
+        return entriesCount;
     }
 
     public long countChildren() {
@@ -159,16 +164,18 @@ public class Node implements TreeNode {
         child.setParentId(0L);
     }
 
+    public static void setEntriesCount(long entriesCount) {
+        Node.entriesCount = entriesCount;
+    }
+
+    private void parseFlags(byte flags) {
+        isSymlink = (flags & 0b00000001) != 0;
+        isFile = (flags & 0b00000010) != 0;
+        isDirectory = (flags & 0b00000100) != 0;
+    }
+
     public boolean isDirectory() {
-        return (flags & 0b00000001) == 0b00000001;
-    }
-
-    public boolean isSymlink() {
-        return (flags & 0b00000100) == 0b00000100;
-    }
-
-    public boolean isFile() {
-        return (flags & 0b00000010) == 0b00000010;
+        return isDirectory;
     }
 
     public List<Node> getChildren() {
@@ -179,8 +186,8 @@ public class Node implements TreeNode {
         return new FileSize(getAbsoluteSize());
     }
 
-    public boolean hasHash() {
-        return (flags & 0b00001000) == 0b00001000;
+    public void setDirectory(boolean directory) {
+        isDirectory = directory;
     }
 
     public String getPath() {
@@ -249,6 +256,14 @@ public class Node implements TreeNode {
     //  Generated Getters and Setters  //
     //=================================//
 
+    public boolean isSymlink() {
+        return isSymlink;
+    }
+
+    public void setSymlink(boolean symlink) {
+        isSymlink = symlink;
+    }
+
     public long getId() {
         return id;
     }
@@ -257,21 +272,12 @@ public class Node implements TreeNode {
         this.id = id;
     }
 
-    @Override
-    public TreeNode getParent() {
-        return parent;
+    public boolean isFile() {
+        return isFile;
     }
 
-    public void setParent(Node parent) {
-        this.parent = parent;
-    }
-
-    private long getParentId() {
-        return parent_id;
-    }
-
-    private void setParentId(long parent_id) {
-        this.parent_id = parent_id;
+    public void setFile(boolean file) {
+        isFile = file;
     }
 
     public String getName() {
@@ -282,12 +288,16 @@ public class Node implements TreeNode {
         this.name = name;
     }
 
-    public byte getFlags() {
-        return flags;
+    public boolean hasHash() {
+        return hash != 0;
     }
 
-    public void setFlags(byte flags) {
-        this.flags = flags;
+    public long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
     }
 
     public int getMode() {
@@ -346,12 +356,12 @@ public class Node implements TreeNode {
         this.accessed = accessed;
     }
 
-    public String getLinkDest() {
-        return link_dest;
+    public String getLinkDestination() {
+        return linkDestination;
     }
 
-    public void setLinkDest(String link_dest) {
-        this.link_dest = link_dest;
+    public void setLinkDestination(String linkDestination) {
+        this.linkDestination = linkDestination;
     }
 
     public int getHash() {
@@ -362,6 +372,15 @@ public class Node implements TreeNode {
         this.hash = hash;
     }
 
+    @Override
+    public Node getParent() {
+        return parent;
+    }
+
+    public void setParent(Node parent) {
+        this.parent = parent;
+    }
+
     public boolean isMarked() {
         return marked;
     }
@@ -370,21 +389,15 @@ public class Node implements TreeNode {
         this.marked = marked;
     }
 
-    public static void setEntriesCount(long entriesCount) {
-        Node.entriesCount = entriesCount;
-    }
-
-    //=======================//
-    //  Common Java Methods  //
-    //=======================//
-
     @Override
     public String toString() {
         return "Node{" +
                 "id=" + id +
-                ", parent_id=" + parent_id +
+                ", parent_id=" + parentId +
                 ", name='" + name + '\'' +
-                ", flags=" + flags +
+                ", isSymlink=" + isSymlink +
+                ", isFile=" + isFile +
+                ", isDirectory=" + isDirectory +
                 ", mode=" + mode +
                 ", uid=" + uid +
                 ", gid=" + gid +
@@ -392,10 +405,11 @@ public class Node implements TreeNode {
                 ", created=" + created +
                 ", modified=" + modified +
                 ", accessed=" + accessed +
-                ", link_dest='" + link_dest + '\'' +
+                ", linkDestination='" + linkDestination + '\'' +
                 ", hash=" + hash +
-                ", parent=" + parent +
+                ", parent=" + (parent != null ? parent.getPath() : "null") +
                 ", children=" + children.size() +
+                ", marked=" + marked +
                 '}';
     }
 }

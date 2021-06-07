@@ -8,7 +8,7 @@ public class CreateFolder extends Transaction {
 
     public CreateFolder(final Node parent, final String name) {
         this.parent = parent;
-        child = new Node(parent, name);
+        child = new Node(parent, name, true);
     }
 
     @Override

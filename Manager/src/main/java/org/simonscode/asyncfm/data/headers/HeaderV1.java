@@ -3,7 +3,7 @@ package org.simonscode.asyncfm.data.headers;
 import java.io.DataInputStream;
 import java.io.IOException;
 
-import static org.simonscode.asyncfm.data.StructUtils.readString;
+import static org.simonscode.asyncfm.data.NodeWalker.readString;
 
 public class HeaderV1 extends Header {
     public HeaderV1(DataInputStream dis) throws IOException {
