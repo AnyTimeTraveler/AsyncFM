@@ -29,10 +29,14 @@ public class FileManagerPanel extends JPanel {
         setLayout(new BorderLayout(3, 3));
         setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        ContextMenu contextMenu = new ContextMenu(parent);
         detailsPanel = new FileDetailsPanel(this);
-        fileTreePanel = new FileTreePanel(this, contextMenu);
-        fileTablePanel = new FileTablePanel(rootNode, this, contextMenu);
+        ContextMenu treeContextMenu = new ContextMenu(parent);
+        fileTreePanel = new FileTreePanel(this, treeContextMenu);
+        treeContextMenu.setNodeSource(fileTreePanel);
+
+        ContextMenu tableContextMenu = new ContextMenu(parent);
+        fileTablePanel = new FileTablePanel(rootNode, this, tableContextMenu);
+        tableContextMenu.setNodeSource(fileTablePanel);
 
         JPanel rightHalf = new JPanel(new BorderLayout(3, 3));
         rightHalf.add(fileTablePanel, BorderLayout.CENTER);

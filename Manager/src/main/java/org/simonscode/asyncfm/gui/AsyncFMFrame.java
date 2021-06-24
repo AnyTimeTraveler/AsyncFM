@@ -2,7 +2,7 @@ package org.simonscode.asyncfm.gui;
 
 import org.simonscode.asyncfm.data.TransactionStore;
 import org.simonscode.asyncfm.gui.filemanager.FileManagerPanel;
-import org.simonscode.asyncfm.gui.transactions.TransactionPanel;
+import org.simonscode.asyncfm.gui.transactions.TransactionsPanel;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -17,7 +17,7 @@ public class AsyncFMFrame extends JFrame {
     @SuppressWarnings("FieldCanBeLocal")
     private final String APP_TITLE = "AsyncFM";
     private final FileManagerPanel fileBrowserPanel = new FileManagerPanel(this);
-    private final TransactionPanel transactionsPanel = new TransactionPanel(this);
+    private final TransactionsPanel transactionsPanel = new TransactionsPanel(this);
 
     public AsyncFMFrame() throws HeadlessException {
         super("AsyncFM");

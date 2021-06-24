@@ -1,6 +1,7 @@
 package org.simonscode.asyncfm.gui.filemanager;
 
 import org.simonscode.asyncfm.data.Node;
+import org.simonscode.asyncfm.gui.FileSize;
 import org.simonscode.asyncfm.gui.Icons;
 
 import javax.swing.*;
@@ -37,7 +38,7 @@ class NodeTableModel extends AbstractTableModel {
                     yield file.getName();
                 }
             }
-            case 2 -> file.isDirectory() ? file.getAbsoluteSizeString() : file.getSizeString();
+            case 2 -> file.getAbsoluteSize();
             case 3 -> file.isDirectory() ? "" : Long.toHexString(file.getHash());
             case 4 -> file.countChildren();
             default -> "Logic Error";
@@ -51,6 +52,7 @@ class NodeTableModel extends AbstractTableModel {
     public Class<?> getColumnClass(int column) {
         return switch (column) {
             case 0 -> ImageIcon.class;
+            case 2 -> FileSize.class;
             case 4 -> Long.class;
             default -> String.class;
         };

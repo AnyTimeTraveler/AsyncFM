@@ -2,7 +2,6 @@ package org.simonscode.asyncfm.operations;
 
 import org.simonscode.asyncfm.data.Node;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -30,10 +29,14 @@ public class FindDuplicates extends Transaction {
 
     private void fillHashMap(Node node) {
         final int hash = node.getHash();
-        if (hashes.containsKey(hash)) {
-            hashes.get(hash).add(node);
-        } else {
-            hashes.put(hash, new LinkedList<>(Collections.singleton(node)));
+        if (hash != 0) {
+            if (hashes.containsKey(hash)) {
+                hashes.get(hash).add(node);
+            } else {
+                LinkedList<Node> newList = new LinkedList<>();
+                newList.add(node);
+                hashes.put(hash, newList);
+            }
         }
         for (Node child : node.getChildren()) {
             fillHashMap(child);
@@ -57,5 +60,10 @@ public class FindDuplicates extends Transaction {
     @Override
     public String toString() {
         return String.format("Find duplicates in %s", node.getPath());
+    }
+
+    @Override
+    public String getKind() {
+        return "Remove duplicates";
     }
 }

@@ -137,17 +137,13 @@ public class Node implements TreeNode {
         return amount;
     }
 
-    public FileSize getAbsoluteSizeString() {
-        return new FileSize(getAbsoluteSize());
-    }
-
-    public long getAbsoluteSize() {
+    public long getAbsoluteSizeBytes() {
         if (children.isEmpty()) {
             return size;
         }
         long amount = 0L;
         for (Node child : children) {
-            amount += child.getAbsoluteSize();
+            amount += child.getAbsoluteSizeBytes();
         }
         return amount;
     }
@@ -182,8 +178,8 @@ public class Node implements TreeNode {
         return children;
     }
 
-    public FileSize getSizeString() {
-        return new FileSize(getAbsoluteSize());
+    public FileSize getAbsoluteSize() {
+        return new FileSize(getAbsoluteSizeBytes());
     }
 
     public void setDirectory(boolean directory) {

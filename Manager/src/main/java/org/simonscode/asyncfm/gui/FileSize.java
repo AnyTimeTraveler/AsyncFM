@@ -16,7 +16,7 @@ public class FileSize implements Comparable<FileSize> {
 
     @Override
     public int compareTo(FileSize o) {
-        return ((int) o.size) - ((int) size);
+        return Long.compare(o.size, size);
     }
 
     public static String humanReadableByteCount(long bytes) {

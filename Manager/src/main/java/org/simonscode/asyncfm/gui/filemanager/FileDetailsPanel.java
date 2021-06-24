@@ -1,7 +1,6 @@
 package org.simonscode.asyncfm.gui.filemanager;
 
 import org.simonscode.asyncfm.data.Node;
-import org.simonscode.asyncfm.gui.FileSize;
 import org.simonscode.asyncfm.gui.Icons;
 
 import javax.swing.*;
@@ -64,8 +63,8 @@ public class FileDetailsPanel extends JPanel {
         fileName.setIcon(node.isDirectory() ? Icons.folderClosedIcon : Icons.fileIcon);
         fileName.setText(node.getName());
         path.setText(node.getPath());
-        absoluteSize.setText(FileSize.humanReadableByteCount(node.getAbsoluteSize()));
-        ownSize.setText(node.getSizeString().toString());
+        absoluteSize.setText(node.getAbsoluteSize().toString());
+//        ownSize.setText(node.getSizeString().toString());
         hash.setText(Long.toHexString(node.getHash()));
         repaint();
     }

@@ -1,20 +1,15 @@
 package org.simonscode.asyncfm.gui.filemanager;
 
 import org.simonscode.asyncfm.data.Node;
-import org.simonscode.asyncfm.gui.FileSize;
 import org.simonscode.asyncfm.gui.Icons;
-import org.simonscode.asyncfm.operations.Transaction;
 
 import javax.swing.*;
 import javax.swing.table.TableColumn;
-import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Comparator;
 
-public class FileTablePanel extends JPanel {
-    private final FileManagerPanel parent;
+public class FileTablePanel extends JPanel implements NodeSource {
     private final JTable table;
     private final int rowIconPadding = 6;
     private NodeTableModel fileTableModel;
@@ -22,7 +17,6 @@ public class FileTablePanel extends JPanel {
 
     public FileTablePanel(Node rootNode, FileManagerPanel parent, JPopupMenu contextMenu) {
         super(new BorderLayout());
-        this.parent = parent;
 
         fileTableModel = new NodeTableModel(rootNode);
         table = new JTable(fileTableModel);
@@ -65,16 +59,6 @@ public class FileTablePanel extends JPanel {
         SwingUtilities.invokeLater(() -> {
             fileTableModel = new NodeTableModel(parent);
             table.setModel(fileTableModel);
-            TableRowSorter<NodeTableModel> trs = new TableRowSorter<>((NodeTableModel) table.getModel());
-
-            class FileSizeComparator implements Comparator<FileSize> {
-                public int compare(FileSize one, FileSize other) {
-                    return one.compareTo(other);
-                }
-            }
-
-            trs.setComparator(2, new FileSizeComparator());
-            table.setRowSorter(trs);
             fileTableModel.setParent(parent);
             if (!cellSizesSet) {
                 // ownSize adjustment to better account for icons
@@ -108,16 +92,17 @@ public class FileTablePanel extends JPanel {
         fileTableModel.fireTableDataChanged();
     }
 
-    void fileAction(Class<? extends Transaction> action, JButton button) {
-        if (table.getSelectedRow() == -1) {
-//            TransactionCreator.handleClick(action, button, ((NodeTableModel) table.getModel()).getParent(), parent);
-        } else {
-//            TransactionCreator.handleClick(action, button, ((NodeTableModel) table.getModel()).getFile(table.getSelectedRow()), parent);
-        }
-    }
-
     public void setRootNode(Node rootNode) {
         fileTableModel = new NodeTableModel(rootNode);
         table.setModel(fileTableModel);
+    }
+
+    @Override
+    public Node getSelectedNode() {
+        int row = table.getSelectionModel().getLeadSelectionIndex();
+        if (table.getSelectedRow() != -1) {
+            return ((NodeTableModel) table.getModel()).getFile(row);
+        }
+        return null;
     }
 }

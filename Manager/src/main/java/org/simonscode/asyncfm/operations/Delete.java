@@ -11,18 +11,21 @@ public class Delete extends Transaction {
 
     @Override
     public void execute() {
-        final Node parent = (Node) node.getParent();
-        parent.removeChild(node);
+        node.getParent().removeChild(node);
     }
 
     @Override
     public void undo() {
-        final Node parent = (Node) node.getParent();
-        parent.addChild(node);
+        node.getParent().addChild(node);
     }
 
     @Override
     public String toString() {
         return String.format("Delete %s", node.getPath());
+    }
+
+    @Override
+    public String getKind() {
+        return "Delete";
     }
 }

@@ -9,7 +9,7 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 
-public class FileTreePanel extends JPanel {
+public class FileTreePanel extends JPanel implements NodeSource {
     private final FileManagerPanel parent;
     private final ContextMenu contextMenu;
     private JTree tree;
@@ -76,5 +76,14 @@ public class FileTreePanel extends JPanel {
 
     public void onFileTreeUpdated() {
         treeModel.reload(rootNode);
+    }
+
+    @Override
+    public Node getSelectedNode() {
+        TreePath selectionPath = tree.getSelectionPath();
+        if (selectionPath == null) {
+            return null;
+        }
+        return (Node) selectionPath.getLastPathComponent();
     }
 }

@@ -25,4 +25,9 @@ public class CreateFolder extends Transaction {
     public String toString() {
         return String.format("Create folder named %s in %s", child.getName(), parent.getPath());
     }
+
+    @Override
+    public String getKind() {
+        return "Create folder";
+    }
 }

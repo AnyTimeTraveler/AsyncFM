@@ -1,25 +1,16 @@
 package org.simonscode.asyncfm.gui.transactions;
 
 import org.simonscode.asyncfm.gui.AsyncFMFrame;
+import org.simonscode.asyncfm.operations.Transaction;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class TransactionPanel extends JPanel {
-
-    public TransactionPanel(AsyncFMFrame parent) {
+    public TransactionPanel(AsyncFMFrame parent, Transaction transaction) {
         setLayout(new BorderLayout(3, 3));
-        setBorder(new EmptyBorder(5, 5, 5, 5));
+        setBorder(BorderFactory.createTitledBorder(transaction.getKind()));
 
-        JTable transactionTable = new JTable(new TransactionTableModel());
-        transactionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        transactionTable.setAutoCreateRowSorter(true);
-        transactionTable.setShowVerticalLines(false);
-        add(transactionTable, BorderLayout.CENTER);
-    }
-
-    public void onFileTreeUpdated() {
 
     }
 }

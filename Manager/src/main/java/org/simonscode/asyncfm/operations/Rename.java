@@ -27,4 +27,9 @@ public class Rename extends Transaction {
     public String toString() {
         return String.format("Rename %s to %s", node.getPath(), name);
     }
+
+    @Override
+    public String getKind() {
+        return "Rename";
+    }
 }

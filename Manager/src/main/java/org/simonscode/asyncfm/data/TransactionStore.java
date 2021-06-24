@@ -11,10 +11,15 @@ public class TransactionStore {
     private static final List<Transaction> transactions = new ArrayList<>();
     private static AsyncFMFrame frame;
 
-
-    public static void addTransaction(Transaction transaction) {
+    public static void executeAndLogTransaction(Transaction transaction) {
         transactions.add(transaction);
         transaction.execute();
+        frame.onFileTreeUpdated();
+    }
+
+    public static void undoAndRemove(Transaction transaction) {
+        transaction.undo();
+        transactions.remove(transaction);
         frame.onFileTreeUpdated();
     }
 

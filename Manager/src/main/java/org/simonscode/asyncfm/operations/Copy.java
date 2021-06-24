@@ -27,4 +27,9 @@ public class Copy extends Transaction {
     public String toString() {
         return String.format("Copy %s to %s", src.getPath(), dst.getPath());
     }
+
+    @Override
+    public String getKind() {
+        return "Copy";
+    }
 }
