@@ -27,9 +27,10 @@ public class FileTablePanel extends JPanel implements NodeSource {
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                int row = table.getSelectionModel().getLeadSelectionIndex();
-                if (table.getSelectedRow() != -1) {
-                    Node node = ((NodeTableModel) table.getModel()).getFile(row);
+                int viewRow = table.getSelectedRow();
+                if (viewRow != -1) {
+                    int modelRow = table.convertRowIndexToModel(viewRow);
+                    Node node = ((NodeTableModel) table.getModel()).getFile(modelRow);
                     if (node != null) {
                         if (e.getClickCount() == 1) {
                             parent.onFileSelected(node);

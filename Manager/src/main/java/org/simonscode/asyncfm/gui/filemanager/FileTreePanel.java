@@ -31,13 +31,12 @@ public class FileTreePanel extends JPanel implements NodeSource {
         tree.setRootVisible(true);
         tree.addTreeSelectionListener(e -> {
             Node node = (Node) e.getPath().getLastPathComponent();
-            parent.onFileSelected(node);
+            parent.onFolderOpened(node);
         });
         tree.addTreeExpansionListener(new TreeExpansionListener() {
             @Override
             public void treeExpanded(TreeExpansionEvent e) {
                 Node node = (Node) e.getPath().getLastPathComponent();
-                parent.onFolderOpened(node);
             }
 
             @Override
