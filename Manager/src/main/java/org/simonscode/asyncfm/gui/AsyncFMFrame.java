@@ -1,6 +1,8 @@
 package org.simonscode.asyncfm.gui;
 
+import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.data.TransactionStore;
+import org.simonscode.asyncfm.gui.charts.FilePieChartPanel;
 import org.simonscode.asyncfm.gui.filemanager.FileManagerPanel;
 import org.simonscode.asyncfm.gui.transactions.TransactionsPanel;
 
@@ -51,12 +53,9 @@ public class AsyncFMFrame extends JFrame {
 
         JMenu fileMenu = new JMenu("File");
 
-        JMenuItem openItem = new JMenuItem("Open");
+        JMenuItem openItem = new JMenuItem("Open...");
         openItem.addActionListener(a -> {
-            JFileChooser fc = new JFileChooser(new File("."));
-            fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fc.setMultiSelectionEnabled(false);
-            fc.addChoosableFileFilter(new FileNameExtensionFilter("AsyncFM Files", "adat"));
+            JFileChooser fc = createFileChooser();
             fc.showOpenDialog(this);
             if (fc.getSelectedFile() != null) {
                 Thread readerThread = new Thread(() -> {
@@ -74,10 +73,7 @@ public class AsyncFMFrame extends JFrame {
 
         JMenuItem saveItem = new JMenuItem("Save as...");
         saveItem.addActionListener(a -> {
-            JFileChooser fc = new JFileChooser(new File("."));
-            fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fc.setMultiSelectionEnabled(false);
-            fc.addChoosableFileFilter(new FileNameExtensionFilter("AsyncFM Files", "adat"));
+            JFileChooser fc = createFileChooser();
             fc.showSaveDialog(this);
             if (fc.getSelectedFile() != null) {
                 Thread writerThread = new Thread(() -> {
@@ -96,6 +92,14 @@ public class AsyncFMFrame extends JFrame {
         bar.add(fileMenu);
 
         return bar;
+    }
+
+    private JFileChooser createFileChooser() {
+        JFileChooser fc = new JFileChooser(new File("."));
+        fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fc.setMultiSelectionEnabled(false);
+        fc.addChoosableFileFilter(new FileNameExtensionFilter("AsyncFM Files", "adat"));
+        return fc;
     }
 
     private void loadAndSetIcon() {
@@ -147,5 +151,12 @@ public class AsyncFMFrame extends JFrame {
     public void onFileTreeUpdated() {
         fileBrowserPanel.onFileTreeUpdated();
         transactionsPanel.onFileTreeUpdated();
+    }
+
+    public void openPieChart(Node node) {
+        JTabbedPane tabbedPane = (JTabbedPane) getContentPane();
+        Component added = tabbedPane.add("Pie Chart : " + node.getName(), new FilePieChartPanel(this, node));
+
+        tabbedPane.setSelectedIndex(tabbedPane.indexOfComponent(added));
     }
 }

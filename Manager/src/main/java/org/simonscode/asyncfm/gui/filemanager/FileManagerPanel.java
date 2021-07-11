@@ -17,9 +17,6 @@ public class FileManagerPanel extends JPanel {
     private final FileDetailsPanel detailsPanel;
     private final FileTreePanel fileTreePanel;
     private final FileTablePanel fileTablePanel;
-    /**
-     * Table model for Nodes.
-     */
 
     private NodeWalker walker;
     private Node rootNode;
