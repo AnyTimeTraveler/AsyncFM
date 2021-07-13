@@ -1,9 +1,8 @@
 package org.simonscode.asyncfm.gui;
 
 import org.simonscode.asyncfm.data.Node;
-import org.simonscode.asyncfm.data.TransactionStore;
-import org.simonscode.asyncfm.gui.charts.FilePieChartPanel;
-import org.simonscode.asyncfm.gui.filemanager.FileManagerPanel;
+import org.simonscode.asyncfm.data.NodeWalker;
+import org.simonscode.asyncfm.gui.filebrowser.FileBrowserPanel;
 import org.simonscode.asyncfm.gui.transactions.TransactionsPanel;
 
 import javax.imageio.ImageIO;
@@ -11,6 +10,8 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -18,14 +19,16 @@ import java.util.ArrayList;
 public class AsyncFMFrame extends JFrame {
     @SuppressWarnings("FieldCanBeLocal")
     private final String APP_TITLE = "AsyncFM";
-    private final FileManagerPanel fileBrowserPanel = new FileManagerPanel(this);
+
+    private final FileBrowserPanel fileBrowserPanel = new FileBrowserPanel(this);
+    private NodeWalker walker;
+    private Node rootNode;
     private final TransactionsPanel transactionsPanel = new TransactionsPanel(this);
 
     public AsyncFMFrame() throws HeadlessException {
         super("AsyncFM");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        TransactionStore.setFrame(this);
         loadAndSetIcon();
 
         setContentPane(new JTabbedPane(SwingConstants.TOP));
@@ -42,7 +45,7 @@ public class AsyncFMFrame extends JFrame {
     public AsyncFMFrame(String path) {
         this();
         try {
-            fileBrowserPanel.loadFile(new File(path));
+            loadFile(new File(path));
         } catch (IOException e) {
             showThrowable(e);
         }
@@ -60,7 +63,7 @@ public class AsyncFMFrame extends JFrame {
             if (fc.getSelectedFile() != null) {
                 Thread readerThread = new Thread(() -> {
                     try {
-                        fileBrowserPanel.loadFile(fc.getSelectedFile());
+                        loadFile(fc.getSelectedFile());
                     } catch (IOException e) {
                         showThrowable(e);
                     }
@@ -78,7 +81,7 @@ public class AsyncFMFrame extends JFrame {
             if (fc.getSelectedFile() != null) {
                 Thread writerThread = new Thread(() -> {
                     try {
-                        fileBrowserPanel.saveFile(fc.getSelectedFile());
+                        saveFile(fc.getSelectedFile());
                     } catch (IOException e) {
                         showThrowable(e);
                     }
@@ -148,15 +151,15 @@ public class AsyncFMFrame extends JFrame {
         setTitle(APP_TITLE + " :: " + path);
     }
 
-    public void onFileTreeUpdated() {
-        fileBrowserPanel.onFileTreeUpdated();
-        transactionsPanel.onFileTreeUpdated();
+    public void loadFile(File path) throws IOException {
+        var fis = new FileInputStream(path);
+        walker = new NodeWalker(fis, true, this);
+        rootNode = walker.readTree();
+        fileBrowserPanel.onNewRootNode(rootNode);
     }
 
-    public void openPieChart(Node node) {
-        JTabbedPane tabbedPane = (JTabbedPane) getContentPane();
-        Component added = tabbedPane.add("Pie Chart : " + node.getName(), new FilePieChartPanel(this, node));
-
-        tabbedPane.setSelectedIndex(tabbedPane.indexOfComponent(added));
+    public void saveFile(File path) throws IOException {
+        var fos = new FileOutputStream(path);
+        walker.writeData(rootNode, fos);
     }
 }

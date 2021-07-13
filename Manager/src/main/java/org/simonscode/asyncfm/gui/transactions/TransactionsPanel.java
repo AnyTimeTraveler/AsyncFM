@@ -12,8 +12,4 @@ public class TransactionsPanel extends JPanel {
         setLayout(new BorderLayout(3, 3));
         setBorder(new EmptyBorder(5, 5, 5, 5));
     }
-
-    public void onFileTreeUpdated() {
-
-    }
 }

@@ -1,15 +1,13 @@
-package org.simonscode.asyncfm.gui.charts;
+package org.simonscode.asyncfm.gui.filebrowser.right.piechart;
 
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartMouseEvent;
-import org.jfree.chart.ChartMouseListener;
-import org.jfree.chart.JFreeChart;
+import org.jfree.chart.*;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.PieSectionEntity;
 import org.jfree.chart.plot.PiePlot;
 import org.jfree.data.general.DefaultPieDataset;
 import org.simonscode.asyncfm.data.Node;
-import org.simonscode.asyncfm.gui.AsyncFMFrame;
+import org.simonscode.asyncfm.gui.filebrowser.FileTreeUpdateListener;
+import org.simonscode.asyncfm.gui.filebrowser.FolderOpenedListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,29 +18,34 @@ import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class FilePieChartPanel extends JPanel implements ChartMouseListener, ActionListener {
-
-    private final CustomPieChartPanel chartPanel;
+public class FilePieChartPanel extends JPanel implements ChartMouseListener, ActionListener, FileTreeUpdateListener, FolderOpenedListener {
+    private final FolderOpenedListener folderOpenedListener;
+    private final ChartPanel chartPanel;
     private final JButton showParentFolderButton;
-    private final AsyncFMFrame parentFrame;
-    private List<Node> nodes = new ArrayList<>();
     private Node selectedNode;
     private Comparable lastKey;
+    private List<Node> nodes = new ArrayList<>();
 
-    public FilePieChartPanel(AsyncFMFrame parentFrame, Node selectedNode) {
+    public FilePieChartPanel(FolderOpenedListener folderOpenedListener) {
         super(new BorderLayout());
-        this.parentFrame = parentFrame;
-        this.selectedNode = selectedNode;
+        this.folderOpenedListener = folderOpenedListener;
 
-        chartPanel = new CustomPieChartPanel(createPieChart(this.selectedNode));
+        chartPanel = new ChartPanel(null,
+                1024, 1024,
+                200, 200,
+                8192, 8192,
+                true,
+                false, false, false, false, false, false);
+
         chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         chartPanel.setBackground(Color.WHITE);
         chartPanel.setFillZoomRectangle(false);
         chartPanel.addChartMouseListener(this);
+
         add(chartPanel, BorderLayout.CENTER);
 
         showParentFolderButton = new JButton("Show Parent Folder");
-        showParentFolderButton.setEnabled(selectedNode.getParent() != null);
+        showParentFolderButton.setEnabled(false);
         showParentFolderButton.addActionListener(this);
 
         JPanel buttonPanel = new JPanel(new FlowLayout());
@@ -53,17 +56,10 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
     @Override
     public void actionPerformed(ActionEvent event) {
         Node parentNode = selectedNode.getParent();
+        showParentFolderButton.setEnabled(parentNode != null);
         if (parentNode != null) {
-            selectedNode = parentNode;
-            setParentNode();
+            folderOpenedListener.onFolderOpened(parentNode);
         }
-    }
-
-    private void setParentNode() {
-        showParentFolderButton.setEnabled(selectedNode.getParent() != null);
-        chartPanel.setChart(createPieChart(selectedNode));
-        setName(selectedNode.getPath());
-        parentFrame.setCurrentPath(selectedNode.getPath());
     }
 
     private JFreeChart createPieChart(Node parent) {
@@ -109,15 +105,6 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
                 false);
     }
 
-//    @Override
-//    public Dimension getSize() {
-//        if (this.getHeight() > this.getWidth()) {
-//            return new Dimension(getWidth(), getWidth());
-//        } else {
-//            return new Dimension(getHeight(), getHeight());
-//        }
-//    }
-
     @Override
     public void chartMouseClicked(ChartMouseEvent event) {
         ChartEntity entity = event.getEntity();
@@ -126,8 +113,7 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
 
             switch (event.getTrigger().getButton()) {
                 case MouseEvent.BUTTON1:
-                    selectedNode = nodes.get(section.getSectionIndex());
-                    setParentNode();
+                    folderOpenedListener.onFolderOpened(nodes.get(section.getSectionIndex()));
                     break;
                 case MouseEvent.BUTTON2:
                     // TODO: Open context menu
@@ -146,8 +132,26 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
                 plot.setExplodePercent(lastKey, 0);
             }
             Comparable key = section.getSectionKey();
-            plot.setExplodePercent(key, 0.05);
+            plot.setExplodePercent(key, 0.1);
             lastKey = key;
         }
+    }
+
+    @Override
+    public void onFolderOpened(Node node) {
+        selectedNode = node;
+        showParentFolderButton.setEnabled(selectedNode.getParent() != null);
+        chartPanel.setChart(createPieChart(selectedNode));
+        chartPanel.setName(selectedNode.getPath());
+    }
+
+    @Override
+    public void onNewRootNode(Node rootNode) {
+        chartPanel.setChart(createPieChart(rootNode));
+    }
+
+    @Override
+    public void onFileTreeUpdated() {
+        chartPanel.setChart(createPieChart(selectedNode));
     }
 }

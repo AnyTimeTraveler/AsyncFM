@@ -1,7 +1,9 @@
-package org.simonscode.asyncfm.gui.filemanager;
+package org.simonscode.asyncfm.gui.filebrowser.right.table;
 
 import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.gui.Icons;
+import org.simonscode.asyncfm.gui.filebrowser.FileTreeUpdateListener;
+import org.simonscode.asyncfm.gui.filebrowser.NodeSource;
 
 import javax.swing.*;
 import javax.swing.table.TableColumn;
@@ -9,16 +11,16 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class FileTablePanel extends JPanel implements NodeSource {
+public class FileTableSubPanel extends JPanel implements NodeSource, FileTreeUpdateListener {
     private final JTable table;
     private final int rowIconPadding = 6;
     private NodeTableModel fileTableModel;
     private boolean cellSizesSet = false;
 
-    public FileTablePanel(Node rootNode, FileManagerPanel parent, JPopupMenu contextMenu) {
+    public FileTableSubPanel(FileTablePanel parent, JPopupMenu contextMenu) {
         super(new BorderLayout());
 
-        fileTableModel = new NodeTableModel(rootNode);
+        fileTableModel = new NodeTableModel(null);
         table = new JTable(fileTableModel);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setAutoCreateRowSorter(true);
@@ -89,15 +91,6 @@ public class FileTablePanel extends JPanel implements NodeSource {
         tableColumn.setMinWidth(width);
     }
 
-    public void onFileTreeChanged() {
-        fileTableModel.fireTableDataChanged();
-    }
-
-    public void setRootNode(Node rootNode) {
-        fileTableModel = new NodeTableModel(rootNode);
-        table.setModel(fileTableModel);
-    }
-
     @Override
     public Node getSelectedNode() {
         int row = table.getSelectionModel().getLeadSelectionIndex();
@@ -105,5 +98,16 @@ public class FileTablePanel extends JPanel implements NodeSource {
             return ((NodeTableModel) table.getModel()).getFile(row);
         }
         return null;
+    }
+
+    @Override
+    public void onNewRootNode(Node rootNode) {
+        fileTableModel = new NodeTableModel(rootNode);
+        table.setModel(fileTableModel);
+    }
+
+    @Override
+    public void onFileTreeUpdated() {
+        fileTableModel.fireTableDataChanged();
     }
 }

@@ -1,4 +1,4 @@
-package org.simonscode.asyncfm.gui.filemanager;
+package org.simonscode.asyncfm.gui.filebrowser.right.table;
 
 import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.gui.FileSize;

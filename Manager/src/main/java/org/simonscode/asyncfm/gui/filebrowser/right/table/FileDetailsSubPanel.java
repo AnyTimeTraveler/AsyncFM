@@ -1,20 +1,21 @@
-package org.simonscode.asyncfm.gui.filemanager;
+package org.simonscode.asyncfm.gui.filebrowser.right.table;
 
 import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.gui.Icons;
+import org.simonscode.asyncfm.gui.filebrowser.FolderOpenedListener;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class FileDetailsPanel extends JPanel {
+public class FileDetailsSubPanel extends JPanel {
     private final JLabel fileName;
     private final JTextField path;
     private final JLabel absoluteSize;
     private final JLabel ownSize;
     private final JLabel hash;
 
-    public FileDetailsPanel(FileManagerPanel parent) {
+    public FileDetailsSubPanel(FolderOpenedListener parent) {
         super(new BorderLayout(3, 3));
         JPanel fileMainDetails = new JPanel(new BorderLayout(4, 2));
         fileMainDetails.setBorder(new EmptyBorder(0, 6, 0, 6));
@@ -59,7 +60,7 @@ public class FileDetailsPanel extends JPanel {
     /**
      * Update the Node details view with the details of this Node.
      */
-    void setFileDetails(Node node) {
+    public void setFileDetails(Node node) {
         fileName.setIcon(node.isDirectory() ? Icons.folderClosedIcon : Icons.fileIcon);
         fileName.setText(node.getName());
         path.setText(node.getPath());

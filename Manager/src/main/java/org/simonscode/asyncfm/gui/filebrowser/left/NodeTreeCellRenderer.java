@@ -1,4 +1,4 @@
-package org.simonscode.asyncfm.gui.filemanager;
+package org.simonscode.asyncfm.gui.filebrowser.left;
 
 
 import org.simonscode.asyncfm.data.Node;
@@ -11,11 +11,11 @@ import java.awt.*;
 /**
  * A TreeCellRenderer for a File.
  */
-class NodeTreeCellRenderer extends DefaultTreeCellRenderer {
+public class NodeTreeCellRenderer extends DefaultTreeCellRenderer {
 
     private final JLabel label;
 
-    NodeTreeCellRenderer() {
+    public NodeTreeCellRenderer() {
         label = new JLabel();
         label.setOpaque(true);
     }

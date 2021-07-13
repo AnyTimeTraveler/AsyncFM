@@ -1,6 +1,10 @@
-package org.simonscode.asyncfm.gui.filemanager;
+package org.simonscode.asyncfm.gui.filebrowser.left;
 
 import org.simonscode.asyncfm.data.Node;
+import org.simonscode.asyncfm.gui.filebrowser.ContextMenu;
+import org.simonscode.asyncfm.gui.filebrowser.FileTreeUpdateListener;
+import org.simonscode.asyncfm.gui.filebrowser.FolderOpenedListener;
+import org.simonscode.asyncfm.gui.filebrowser.NodeSource;
 
 import javax.swing.*;
 import javax.swing.event.TreeExpansionEvent;
@@ -9,16 +13,16 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 
-public class FileTreePanel extends JPanel implements NodeSource {
-    private final FileManagerPanel parent;
+public class FileTreePanel extends JPanel implements NodeSource, FileTreeUpdateListener {
+    private final FolderOpenedListener folderOpenedListener;
     private final ContextMenu contextMenu;
     private JTree tree;
     private Node rootNode;
     private DefaultTreeModel treeModel;
 
-    public FileTreePanel(FileManagerPanel parent, ContextMenu contextMenu) {
+    public FileTreePanel(FolderOpenedListener folderOpenedListener, ContextMenu contextMenu) {
         super(new BorderLayout());
-        this.parent = parent;
+        this.folderOpenedListener = folderOpenedListener;
         this.contextMenu = contextMenu;
 
         init();
@@ -31,7 +35,7 @@ public class FileTreePanel extends JPanel implements NodeSource {
         tree.setRootVisible(true);
         tree.addTreeSelectionListener(e -> {
             Node node = (Node) e.getPath().getLastPathComponent();
-            parent.onFolderOpened(node);
+            folderOpenedListener.onFolderOpened(node);
         });
         tree.addTreeExpansionListener(new TreeExpansionListener() {
             @Override
@@ -60,21 +64,9 @@ public class FileTreePanel extends JPanel implements NodeSource {
         add(treeScroll, BorderLayout.CENTER);
     }
 
-    public void setRootNode(Node rootNode) {
-        this.rootNode = rootNode;
-        removeAll();
-        init();
-        revalidate();
-        repaint();
-    }
-
     public void selectPath(TreePath treePath) {
         tree.expandPath(treePath);
         tree.setSelectionPath(treePath);
-    }
-
-    public void onFileTreeUpdated() {
-        treeModel.reload(rootNode);
     }
 
     @Override
@@ -84,5 +76,19 @@ public class FileTreePanel extends JPanel implements NodeSource {
             return null;
         }
         return (Node) selectionPath.getLastPathComponent();
+    }
+
+    @Override
+    public void onNewRootNode(Node rootNode) {
+        this.rootNode = rootNode;
+        removeAll();
+        init();
+        revalidate();
+        repaint();
+    }
+
+    @Override
+    public void onFileTreeUpdated() {
+        treeModel.reload(rootNode);
     }
 }

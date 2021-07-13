@@ -1,4 +1,4 @@
-package org.simonscode.asyncfm.gui.filemanager;
+package org.simonscode.asyncfm.gui.filebrowser;
 
 import org.simonscode.asyncfm.data.Node;
 import org.simonscode.asyncfm.data.TransactionStore;
@@ -35,7 +35,6 @@ public class ContextMenu extends JPopupMenu {
         createMenuItem("Rename", 'R', e -> TransactionStore.executeAndLogTransaction(new Rename(nodeSource.getSelectedNode(), parent.showInputDialog("New Name", "Rename"))));
         createMenuItem("Create Folder", 'F', e -> TransactionStore.executeAndLogTransaction(new CreateFolder(nodeSource.getSelectedNode(), parent.showInputDialog("Enter name of directory,", "Name"))));
         createMenuItem("Find Duplicates", 'u', e -> TransactionStore.executeAndLogTransaction(new FindDuplicates(nodeSource.getSelectedNode())));
-        createMenuItem("Open as Pie Chart", 'P', e -> parent.openPieChart(nodeSource.getSelectedNode()));
     }
 
     private void createMenuItem(String name, char mnemonic, ActionListener listener) {
