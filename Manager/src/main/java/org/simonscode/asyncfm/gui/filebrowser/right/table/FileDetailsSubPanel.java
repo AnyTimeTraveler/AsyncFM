@@ -11,8 +11,7 @@ import java.awt.*;
 public class FileDetailsSubPanel extends JPanel {
     private final JLabel fileName;
     private final JTextField path;
-    private final JLabel absoluteSize;
-    private final JLabel ownSize;
+    private final JLabel size;
     private final JLabel hash;
 
     public FileDetailsSubPanel(FolderOpenedListener parent) {
@@ -35,13 +34,9 @@ public class FileDetailsSubPanel extends JPanel {
         path.setEditable(false);
         fileDetailsValues.add(path);
 
-        fileDetailsLabels.add(new JLabel("Absolute size", JLabel.TRAILING));
-        absoluteSize = new JLabel();
-        fileDetailsValues.add(absoluteSize);
-
-        fileDetailsLabels.add(new JLabel("Node size", JLabel.TRAILING));
-        ownSize = new JLabel();
-        fileDetailsValues.add(ownSize);
+        fileDetailsLabels.add(new JLabel("Size", JLabel.TRAILING));
+        size = new JLabel();
+        fileDetailsValues.add(size);
 
         fileDetailsLabels.add(new JLabel("Hash", JLabel.TRAILING));
         hash = new JLabel();
@@ -64,8 +59,7 @@ public class FileDetailsSubPanel extends JPanel {
         fileName.setIcon(node.isDirectory() ? Icons.folderClosedIcon : Icons.fileIcon);
         fileName.setText(node.getName());
         path.setText(node.getPath());
-        absoluteSize.setText(node.getAbsoluteSize().toString());
-//        ownSize.setText(node.getSizeString().toString());
+        size.setText(node.getFileSize().toString());
         hash.setText(Long.toHexString(node.getHash()));
         repaint();
     }

@@ -76,8 +76,8 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
         long maxSize = 0;
 
         for (Node child : children) {
-            if (child.getAbsoluteSizeBytes() > maxSize) {
-                maxSize = child.getAbsoluteSizeBytes();
+            if (child.getSize() > maxSize) {
+                maxSize = child.getSize();
             }
         }
 
@@ -86,14 +86,14 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
         HashMap<Node, Double> map = new HashMap<>();
 
         for (Node child : children) {
-            map.put(child, ((double) child.getAbsoluteSizeBytes()) / maxSizeDouble);
+            map.put(child, ((double) child.getSize()) / maxSizeDouble);
         }
 
         nodes = map.entrySet()
                 .stream()
                 .sequential()
                 .sorted(Map.Entry.comparingByValue())
-                .peek(child -> dataset.setValue(child.getKey().getName() + " " + child.getKey().getAbsoluteSize().toString(), child.getValue()))
+                .peek(child -> dataset.setValue(child.getKey().getName() + " " + child.getKey().getFileSize().toString(), child.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 

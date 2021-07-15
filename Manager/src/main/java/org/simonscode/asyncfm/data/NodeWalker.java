@@ -118,11 +118,12 @@ public class NodeWalker {
     }
 
     public static String readString(DataInputStream dis) throws IOException {
-        byte[] data = new byte[dis.readInt()];
+        int length = dis.readInt();
 
-        if (data.length == 0) {
+        if (length <= 0) {
             return null;
         }
+        byte[] data = new byte[length];
 
         int bytesRead = dis.read(data, 0, data.length);
         if (bytesRead != data.length) {

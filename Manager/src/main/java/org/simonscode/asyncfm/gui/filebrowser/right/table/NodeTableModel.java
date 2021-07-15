@@ -38,7 +38,7 @@ class NodeTableModel extends AbstractTableModel {
                     yield file.getName();
                 }
             }
-            case 2 -> file.getAbsoluteSize();
+            case 2 -> file.getFileSize();
             case 3 -> file.isDirectory() ? "" : Long.toHexString(file.getHash());
             case 4 -> file.countChildren();
             default -> "Logic Error";

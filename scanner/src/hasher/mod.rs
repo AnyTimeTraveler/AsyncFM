@@ -1,111 +1,105 @@
-use crc32fast::Hasher;
 use std::fs;
-use std::io::{Read, Error, BufWriter, BufReader};
-use std::time::Instant;
-use crate::scanner::{Progress, Header, FileMetadata, write_header};
-use std::sync::mpsc::{SyncSender, Sender};
-use crate::Options;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader, BufWriter, Error, Read};
 use std::path::Path;
-use std::fs::{OpenOptions, File};
-use byteorder::{BigEndian, ReadBytesExt};
+use std::sync::mpsc::Sender;
+use std::time::Instant;
 
-pub(crate) fn build_hashed_image(options: &Options, log: &Sender<Progress>, last_id: u64) {
-    let directory_to_scan = Path::new(&options.source_folder);
+use crc32fast::Hasher;
 
+use crate::{FileFlags, FileMetadata, Header, HeaderFlags};
+use crate::Log::{self, Error, Progress};
+
+pub fn build_hashed_image(source_file: &Path, target_file: &Path, log: Sender<Log>) -> u64 {
     let input_file = OpenOptions::new()
         .read(true)
         .write(false)
         .create(false)
-        .open(Path::new(&options.target_file))
-        .expect("Can't open base file!");
+        .open(source_file)
+        .expect("Can't open source file!");
 
     let output_file = OpenOptions::new()
         .read(false)
         .write(true)
         .create(true)
-        .open(Path::new(&options.hash_file))
-        .expect("Can't open hash file!");
+        .open(target_file)
+        .expect("Can't open target file!");
 
     let mut ibuf = BufReader::new(input_file);
     let mut obuf = BufWriter::new(output_file);
 
-    let header = Header {
-        version: 1u32,
-        flags: 1u8,
-        entries: last_id,
-        base_path: directory_to_scan.to_str().unwrap().as_bytes(),
-    };
+    let mut header = Header::read(&mut ibuf);
 
-    write_header(&header, &mut obuf);
+    header.flags.insert(HeaderFlags::HAS_HASHES);
 
-    let stack: Vec<String> = Vec::new();
+    header.write(&mut obuf);
 
-    for i in 0..last_id {
-        process_entry(&mut ibuf);
+    let base_path = String::from_utf8(header.base_path).expect("AAA");
+
+    let mut files: Vec<FileMetadata> = Vec::with_capacity(header.entries as usize);
+
+    for _ in 0..header.entries {
+        files.push(FileMetadata::read(&mut ibuf));
     }
-}
 
-fn read_string(buf: &mut BufReader<File>) -> Result<Vec<u8>, Error> {
-    let mut byte = buf.read_u8()?;
-    let mut bytes = Vec::new();
-    while byte != 0u8 {
-        bytes.push(byte);
-        byte = buf.read_u8()?;
+    let mut hashed_files_count = 0;
+
+    for id in 0..header.entries {
+        let mut file: FileMetadata = files[id as usize].clone();
+        let path = get_path(&base_path, &files, &file);
+        if file.flags == FileFlags::IS_FILE && file.hash.is_none() {
+            match hash(path, id, &log) {
+                Ok(hash) => { file.hash = Some(hash); }
+                Err(error) => { let _ = log.send(Error(format!("Error hashing file: {} : {:?}", path, error))); }
+            }
+
+            hashed_files_count += 1;
+        }
+        file.write(&mut obuf);
     }
-    Result::Ok(bytes)
+
+    hashed_files_count
 }
 
-fn process_entry(buf: &mut BufReader<File>) -> FileMetadata {
-    let id = buf.read_u64::<BigEndian>().expect("Error reading id!");
-    let parent_id = buf.read_u64::<BigEndian>().expect("Error reading parent id!");
-    let mut name = read_string(buf).expect("Error reading name!");
-    let flags = buf.read_u8().expect("Error reading flags!");
-    let mode = buf.read_u32::<BigEndian>().expect("Error reading mode!");
-    let uid = buf.read_u32::<BigEndian>().expect("Error reading uid!");
-    let gid = buf.read_u32::<BigEndian>().expect("Error reading gid!");
-    let size = buf.read_u64::<BigEndian>().expect("Error reading size!");
-    let created = buf.read_i64::<BigEndian>().expect("Error reading created!");
-    let modified = buf.read_i64::<BigEndian>().expect("Error reading modified!");
-    let accessed = buf.read_i64::<BigEndian>().expect("Error reading accessed!");
+fn get_path(base_path: &str, files: &[FileMetadata], file: &FileMetadata) -> String {
+    let mut path = base_path.to_owned();
+    let mut stack = vec![file.id];
+    let mut current_file = file;
 
-    let mut link_dest = read_string(buf).expect("Error reading name!");
-    let hash = buf.read_u32::<BigEndian>().expect("Error while reading hash!");
+    while current_file.parent_id != 0 {
+        stack.push(current_file.parent_id);
+        current_file = files.get(current_file.parent_id as usize).expect("Error finding parent!");
+    }
 
+    stack.reverse();
 
-    let file = FileMetadata {
-        id,
-        parent_id,
-        name: name.as_slice(),
-        flags,
-        mode,
-        uid,
-        gid,
-        size,
-        created,
-        modified,
-        accessed,
-        link_dest: link_dest.as_slice(),
-        hash
-    };
+    for item in stack {
+        path += "/";
+        path += files[item as usize].name.as_str();
+    }
 
-
+    path
 }
 
-pub(crate) fn hash(file: String, id: u64, log: &SyncSender<Progress>) -> Result<u32, Error> {
-    let _ = log.try_send(Progress { id, path: file.to_string() });
+pub fn hash(file: String, id: u64, log: &Sender<Log>) -> Result<u32, Error> {
+    let _ = log.send(Progress { id, path: file.to_string() });
     let mut hasher = Hasher::new();
     let mut scanned_file = fs::File::open(&file)?;
-    let mut buffer = [0u8; 1024];
+    let mut buffer = [0u8; 1024 * 1024];
 
-    let mut count = scanned_file.read(&mut buffer[..])?;
+    let mut count;
     let mut start_time = Instant::now();
-    while count > 0 {
-        count = scanned_file.read(&mut buffer[..])?;
+    loop {
+        count = scanned_file.read(&mut buffer)?;
         hasher.update(&buffer[0..count]);
         if start_time.elapsed().as_secs() > 5 {
-            let _ = log.try_send(Progress { id, path: file.to_string() });
+            let _ = log.send(Progress { id, path: file.to_string() });
             start_time = Instant::now();
         }
+
+        if count <= 0 {
+            break;
+        }
     }
-    Result::Ok(hasher.finalize())
+    Ok(hasher.finalize())
 }

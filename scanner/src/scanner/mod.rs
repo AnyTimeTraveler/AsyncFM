@@ -5,23 +5,12 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
-use crate::Options;
-use crate::scanner::file_metadata::{FileFlags, FileMetadata};
-use crate::scanner::header::Header;
+use crate::file_metadata::{FileFlags, FileMetadata};
+use crate::header::Header;
+use crate::Log;
 use crate::scanner::Log::{Error, Progress};
 
-mod header;
-mod file_metadata;
-
-pub(crate) enum Log {
-    Progress {
-        id: u64,
-        path: String,
-    },
-    Error(String),
-}
-
-pub(crate) struct Scanner {
+pub struct Scanner {
     root_path: PathBuf,
     log: Sender<Log>,
     entry_read_counter: u64,
@@ -29,23 +18,23 @@ pub(crate) struct Scanner {
 }
 
 impl Scanner {
-    pub(crate) fn new(options: Options, log: Sender<Log>) -> Scanner {
+    pub fn new(source_folder: &Path, target_file: &Path, log: Sender<Log>) -> Scanner {
         let output_file = OpenOptions::new()
             .read(false)
             .write(true)
             .create(true)
-            .open(Path::new(&options.target_file))
+            .open(target_file)
             .expect("Can't open target combined file!");
 
         Scanner {
-            root_path: Path::new(&options.source_folder).to_path_buf(),
+            root_path: source_folder.to_path_buf(),
             log,
             entry_read_counter: 0,
             output: BufWriter::new(output_file),
         }
     }
 
-    pub(crate) fn scan(&mut self) {
+    pub fn scan(&mut self) {
         let mut header = Header::new(&self.root_path);
 
         header.write(&mut self.output);
@@ -61,7 +50,7 @@ impl Scanner {
     }
 
     fn visit_file(&mut self, parent_id: u64, dir: &Path) {
-        let id = self.get_next_id();
+        let id = self.next_id();
         self.read_file(id, parent_id, dir);
 
         match dir.symlink_metadata() {
@@ -97,7 +86,7 @@ impl Scanner {
         }
     }
 
-    fn get_next_id(&mut self) -> u64 {
+    fn next_id(&mut self) -> u64 {
         self.entry_read_counter += 1;
         self.entry_read_counter - 1
     }
@@ -152,10 +141,10 @@ impl Scanner {
             }
         };
 
-        file.write_entry(&mut self.output);
+        file.write(&mut self.output);
     }
 
-    pub(crate) fn amount_entries_read(&self) -> u64 {
+    pub fn amount_entries_read(&self) -> u64 {
         self.entry_read_counter
     }
 }
