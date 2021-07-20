@@ -19,10 +19,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class FilePieChartPanel extends JPanel implements ChartMouseListener, ActionListener, FileTreeUpdateListener, FolderOpenedListener {
+    public static final int MAX_PIE_CHART_SLICES = 50;
     private final FolderOpenedListener folderOpenedListener;
     private final ChartPanel chartPanel;
     private final JButton showParentFolderButton;
     private Node selectedNode;
+    @SuppressWarnings("rawtypes")
     private Comparable lastKey;
     private List<Node> nodes = new ArrayList<>();
 
@@ -65,6 +67,7 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
     private JFreeChart createPieChart(Node parent) {
         DefaultPieDataset dataset = new DefaultPieDataset();
 
+        @SuppressWarnings("unchecked")
         Enumeration<Node> iter = (Enumeration<Node>) parent.children();
 
         List<Node> children = new ArrayList<>();
@@ -89,13 +92,28 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
             map.put(child, ((double) child.getSize()) / maxSizeDouble);
         }
 
-        nodes = map.entrySet()
+        // Get all children into a list ordered by their size percentage of the parent folder
+        List<Map.Entry<Node, Double>> tmp = map.entrySet()
                 .stream()
                 .sequential()
-                .sorted(Map.Entry.comparingByValue())
+                .sorted(Map.Entry.<Node, Double>comparingByValue().reversed())
+                .collect(Collectors.toList());
+
+        // Take the first x elements and add them to the pie chart and also to the list of nodes to be used in the mouse click handler
+        nodes = tmp.stream()
+                .limit(MAX_PIE_CHART_SLICES)
                 .peek(child -> dataset.setValue(child.getKey().getName() + " " + child.getKey().getFileSize().toString(), child.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
+
+        // To avoid rendering too many nodes, add one big "Rest" Node for all elements that are above the limit of pie slices
+        if (map.size() > MAX_PIE_CHART_SLICES) {
+            double rest_percentage = tmp.stream()
+                    .skip(MAX_PIE_CHART_SLICES)
+                    .mapToDouble(Map.Entry::getValue)
+                    .sum();
+            dataset.setValue("Rest", rest_percentage);
+        }
 
         return ChartFactory.createPieChart(
                 parent.getPath(),
@@ -113,7 +131,9 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
 
             switch (event.getTrigger().getButton()) {
                 case MouseEvent.BUTTON1:
-                    folderOpenedListener.onFolderOpened(nodes.get(section.getSectionIndex()));
+                    if (section.getSectionIndex() < nodes.size()) {
+                        folderOpenedListener.onFolderOpened(nodes.get(section.getSectionIndex()));
+                    }
                     break;
                 case MouseEvent.BUTTON2:
                     // TODO: Open context menu
@@ -131,6 +151,7 @@ public class FilePieChartPanel extends JPanel implements ChartMouseListener, Act
             if (lastKey != null) {
                 plot.setExplodePercent(lastKey, 0);
             }
+            @SuppressWarnings("rawtypes")
             Comparable key = section.getSectionKey();
             plot.setExplodePercent(key, 0.1);
             lastKey = key;
