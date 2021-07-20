@@ -135,4 +135,8 @@ public class NodeWalker {
     public void writeData(Node rootNode, FileOutputStream fos) {
 
     }
+
+    public void closeLoadingDialog() {
+        loadingDialog.close();
+    }
 }

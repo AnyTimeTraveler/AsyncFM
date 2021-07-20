@@ -154,7 +154,13 @@ public class AsyncFMFrame extends JFrame {
     public void loadFile(File path) throws IOException {
         var fis = new FileInputStream(path);
         walker = new NodeWalker(fis, true, this);
-        rootNode = walker.readTree();
+        try {
+            rootNode = walker.readTree();
+        } catch (IOException e) {
+            walker.closeLoadingDialog();
+            fis.close();
+            throw e;
+        }
         fileBrowserPanel.onNewRootNode(rootNode);
     }
 
