@@ -26,7 +26,7 @@ public class FileBrowserPanel extends JPanel implements FolderOpenedListener, Fi
         fileTreePanel = new FileTreePanel(this, treeContextMenu);
         treeContextMenu.setNodeSource(fileTreePanel);
 
-        fileTablePanel = new FileTablePanel(parent);
+        fileTablePanel = new FileTablePanel(parent, folderOpened -> fileTreePanel.selectPath(folderOpened.getTreePath()));
 
         filePieChartPanel = new FilePieChartPanel(this);
 

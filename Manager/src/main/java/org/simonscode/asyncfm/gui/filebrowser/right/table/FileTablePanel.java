@@ -14,9 +14,11 @@ public class FileTablePanel extends JPanel implements FolderOpenedListener, File
 
     private final FileDetailsSubPanel detailsPanel;
     private final FileTableSubPanel fileTableSubPanel;
+    private final FolderOpenedListener folderOpenedListener;
 
-    public FileTablePanel(AsyncFMFrame parent) {
+    public FileTablePanel(AsyncFMFrame parent, FolderOpenedListener folderOpenedListener) {
         super(new BorderLayout(3, 3));
+        this.folderOpenedListener = folderOpenedListener;
         setBorder(new EmptyBorder(5, 5, 5, 5));
 
         detailsPanel = new FileDetailsSubPanel(this);
@@ -35,6 +37,7 @@ public class FileTablePanel extends JPanel implements FolderOpenedListener, File
 
     @Override
     public void onFolderOpened(Node node) {
+        folderOpenedListener.onFolderOpened(node);
         fileTableSubPanel.showChildrenInTable(node);
         detailsPanel.setFileDetails(node);
     }
