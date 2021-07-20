@@ -69,9 +69,8 @@ public class Node implements TreeNode {
     public Node(Node node) {
         children = new ArrayList<>();
 
-        this.parent = null;
+        node.parent.addChild(this);
         this.id = ++entriesCount;
-        this.parentId = 0L;
         this.name = node.name;
         this.isSymlink = node.isSymlink;
         this.isFile = node.isFile;
@@ -95,16 +94,19 @@ public class Node implements TreeNode {
     public Node(Node parent, String name, boolean isDirectory) {
         children = new ArrayList<>();
 
-        this.parent = null;
+        if (parent != null) {
+            parent.addChild(this);
+        }
         this.id = ++entriesCount;
-        this.parentId = 0L;
         this.name = name;
         this.isSymlink = false;
         this.isFile = !isDirectory;
         this.isDirectory = isDirectory;
-        this.mode = parent.mode;
-        this.uid = parent.uid;
-        this.gid = parent.gid;
+        if (parent != null) {
+            this.mode = parent.mode;
+            this.uid = parent.uid;
+            this.gid = parent.gid;
+        }
         this.size = 0L;
         this.created = Instant.now().getEpochSecond();
         this.modified = Instant.now().getEpochSecond();
