@@ -31,7 +31,7 @@ public class Node implements TreeNode {
     private long modified;          //  i64
     private long accessed;          //  i64
     private String linkDestination; //  &[u8]
-    private int hash;               //  u32
+    private long hash;               //  u64
 
     private Node parent;
     private final List<Node> children;
@@ -53,7 +53,7 @@ public class Node implements TreeNode {
         modified = dis.readLong();
         accessed = dis.readLong();
         linkDestination = readString(dis);
-        hash = dis.readInt();
+        hash = dis.readLong();
         marked = false;
     }
 
@@ -358,7 +358,7 @@ public class Node implements TreeNode {
         this.linkDestination = linkDestination;
     }
 
-    public int getHash() {
+    public long getHash() {
         return hash;
     }
 

@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 public class FindDuplicates extends Transaction {
     private final Node node;
 
-    private Map<Integer, LinkedList<Node>> hashes;
+    private Map<Long, LinkedList<Node>> hashes;
 
     public FindDuplicates(final Node node) {
         this.node = node;
@@ -28,7 +28,7 @@ public class FindDuplicates extends Transaction {
     }
 
     private void fillHashMap(Node node) {
-        final int hash = node.getHash();
+        final long hash = node.getHash();
         if (hash != 0) {
             if (hashes.containsKey(hash)) {
                 hashes.get(hash).add(node);

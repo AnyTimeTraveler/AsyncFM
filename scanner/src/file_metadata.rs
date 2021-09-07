@@ -28,7 +28,7 @@ pub struct FileMetadata {
     pub modified: i64,
     pub accessed: i64,
     pub link_dest: Option<String>,
-    pub hash: Option<u32>,
+    pub hash: Option<u64>,
 }
 
 impl FileMetadata {
@@ -57,7 +57,7 @@ impl FileMetadata {
             buf.write_u32::<BigEndian>(0).expect("Error writing link dest position!");
         }
 
-        buf.write_u32::<BigEndian>(self.hash.unwrap_or(0)).expect("Error while writing hash!");
+        buf.write_u64::<BigEndian>(self.hash.unwrap_or(0)).expect("Error while writing hash!");
     }
 
     pub fn read(buf: &mut BufReader<File>) -> FileMetadata {
@@ -87,7 +87,7 @@ impl FileMetadata {
             None
         };
 
-        let hash = buf.read_u32::<BigEndian>().expect("Error while reading hash!");
+        let hash = buf.read_u64::<BigEndian>().expect("Error while reading hash!");
         let hash = if hash != 0 {
             Some(hash)
         } else {
