@@ -39,10 +39,8 @@ impl Header {
     }
 
     pub fn read(buf: &mut BufReader<File>) -> Header {
-        // buf.seek(Start(0)).expect("Error seeking in file!");
-
+        buf.seek(Start(0)).expect("Error seeking in file!");
         let version = buf.read_u8().expect("Error reading version!");
-
         let flags = HeaderFlags::from_bits(buf.read_u8().expect("Error reading flags!")).expect("Invalid flags value!");
         let entries = buf.read_u64::<BigEndian>().expect("Error reading entries count!");
         let base_path_len = buf.read_u32::<BigEndian>().expect("Error reading base path length!");
