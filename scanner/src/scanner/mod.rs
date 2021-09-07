@@ -1,4 +1,4 @@
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, File, Metadata, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
@@ -49,15 +49,22 @@ impl Scanner {
         self.output.flush().expect("Error flushing target file!");
     }
 
-    fn visit_file(&mut self, parent_id: u64, dir: &Path) {
-        let id = self.next_id();
-        self.read_file(id, parent_id, dir);
-
-        match dir.symlink_metadata() {
-            Err(error) => self.log.send(Error(format!("Couldn't determine file type of: {:?} {:?}", dir, error))).expect("Error logging error!"),
-            Ok(meta) => {
-                if meta.is_dir() && !Scanner::is_symlink(dir) {
-                    self.visit_dir(id, dir);
+    fn visit_file(&mut self, parent_id: u64, path: &Path) {
+        if Scanner::is_symlink(path) {
+            match path.metadata() {
+                Err(error) => self.log.send(Error(format!("Couldn't determine file type of: {:?} {:?}", path, error))).expect("Error logging error!"),
+                Ok(meta) => {
+                    self.read_file(parent_id, path, meta);
+                }
+            }
+        } else {
+            match path.symlink_metadata() {
+                Err(error) => self.log.send(Error(format!("Couldn't determine file type of: {:?} {:?}", path, error))).expect("Error logging error!"),
+                Ok(meta) => {
+                    let id = self.read_file(parent_id, path, meta.clone());
+                    if meta.is_dir() {
+                        self.read_dir(id, path);
+                    }
                 }
             }
         }
@@ -67,11 +74,10 @@ impl Scanner {
         path.read_link().is_ok()
     }
 
-    fn visit_dir(&mut self, parent_id: u64, dir: &Path) {
+    fn read_dir(&mut self, parent_id: u64, dir: &Path) {
         match dir.read_dir() {
             Err(error) => {
                 self.log.send(Error(format!("Error reading file: {} : {:?}", dir.to_string_lossy(), error))).expect("Error logging error!");
-                return;
             }
             Ok(dir_info) => {
                 for entry in dir_info {
@@ -91,57 +97,42 @@ impl Scanner {
         self.entry_read_counter - 1
     }
 
-    fn read_file(&mut self, id: u64, parent_id: u64, path: &Path) {
+    fn read_file(&mut self, parent_id: u64, path: &Path, meta: Metadata) -> u64 {
         let buf = path.to_path_buf();
-        let name = buf.file_name().expect("Error reading filename!").to_string_lossy();
+        let name = buf.file_name().map(|path| path.to_string_lossy().to_string()).unwrap_or("".to_owned());
+
+        let id = self.next_id();
 
         self.log.send(Progress { id, path: buf.to_string_lossy().to_string() }).expect("Error logging error!");
 
-        let file = match path.metadata() {
-            Err(_) => FileMetadata {
-                id,
-                parent_id,
-                name: name.to_string(),
-                mode: 0,
-                uid: 0,
-                gid: 0,
-                size: 0,
-                created: 0,
-                modified: 0,
-                accessed: 0,
-                link_dest: None,
-                hash: None,
-                flags: FileFlags::empty(),
-            },
-            Ok(meta) => {
-                let file_type = meta.file_type();
+        let file_type = meta.file_type();
 
-                let mut flags = FileFlags::empty();
-                if file_type.is_file() { flags |= FileFlags::IS_FILE }
-                if file_type.is_dir() { flags |= FileFlags::IS_DIRECTORY }
-                if file_type.is_symlink() { flags |= FileFlags::IS_SYMLINK }
+        let mut flags = FileFlags::empty();
+        if file_type.is_file() { flags |= FileFlags::IS_FILE }
+        if file_type.is_dir() { flags |= FileFlags::IS_DIRECTORY }
+        if file_type.is_symlink() { flags |= FileFlags::IS_SYMLINK }
 
-                FileMetadata {
-                    id,
-                    parent_id,
-                    name: name.to_string(),
-                    mode: meta.st_mode(),
-                    uid: meta.st_uid(),
-                    gid: meta.st_gid(),
-                    size: meta.st_size(),
-                    created: meta.st_ctime(),
-                    modified: meta.st_mtime(),
-                    accessed: meta.st_atime(),
-                    link_dest: fs::read_link(path)
-                        .map(|dest| dest.to_string_lossy().to_string())
-                        .ok(),
-                    hash: None,
-                    flags,
-                }
-            }
+        let file = FileMetadata {
+            id,
+            parent_id,
+            name: name.to_string(),
+            mode: meta.st_mode(),
+            uid: meta.st_uid(),
+            gid: meta.st_gid(),
+            size: meta.st_size(),
+            created: meta.st_ctime(),
+            modified: meta.st_mtime(),
+            accessed: meta.st_atime(),
+            link_dest: fs::read_link(path)
+                .map(|dest| dest.to_string_lossy().to_string())
+                .ok(),
+            hash: None,
+            flags,
         };
 
         file.write(&mut self.output);
+
+        id
     }
 
     pub fn amount_entries_read(&self) -> u64 {
