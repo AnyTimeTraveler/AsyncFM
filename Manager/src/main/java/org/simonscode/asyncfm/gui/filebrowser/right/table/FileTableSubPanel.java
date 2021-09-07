@@ -43,6 +43,11 @@ public class FileTableSubPanel extends JPanel implements NodeSource, FileTreeUpd
                 }
             }
         });
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (getSelectedNode() != null)
+                parent.onFileSelected(getSelectedNode());
+        });
         JScrollPane tableScroll = new JScrollPane(table);
         Dimension d = tableScroll.getPreferredSize();
         tableScroll.setPreferredSize(new Dimension((int) d.getWidth(), (int) d.getHeight() / 2));
