@@ -1,11 +1,12 @@
 use std::fs;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader, BufWriter, Error, Read};
+use std::hash::Hasher;
+use std::io::{self, BufReader, BufWriter, Read};
 use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 
-use crc32fast::Hasher;
+use seahash::SeaHasher;
 
 use crate::{FileFlags, FileMetadata, Header, HeaderFlags};
 use crate::Log::{self, Error, Progress};
@@ -48,9 +49,9 @@ pub fn build_hashed_image(source_file: &Path, target_file: &Path, log: Sender<Lo
         let mut file: FileMetadata = files[id as usize].clone();
         let path = get_path(&base_path, &files, &file);
         if file.flags == FileFlags::IS_FILE && file.hash.is_none() {
-            match hash(path, id, &log) {
+            match hash(&path, id, &log) {
                 Ok(hash) => { file.hash = Some(hash); }
-                Err(error) => { let _ = log.send(Error(format!("Error hashing file: {} : {:?}", path, error))); }
+                Err(error) => { log.send(Error(format!("Error hashing file: {} : {:?}", path, error))).expect("Error logging error!"); }
             }
 
             hashed_files_count += 1;
@@ -81,9 +82,9 @@ fn get_path(base_path: &str, files: &[FileMetadata], file: &FileMetadata) -> Str
     path
 }
 
-pub fn hash(file: String, id: u64, log: &Sender<Log>) -> Result<u32, Error> {
-    let _ = log.send(Progress { id, path: file.to_string() });
-    let mut hasher = Hasher::new();
+pub fn hash(file: &str, id: u64, log: &Sender<Log>) -> Result<u64, io::Error> {
+    log.send(Progress { id, path: file.to_string() }).expect("Error logging error!");
+    let mut hasher = SeaHasher::new();
     let mut scanned_file = fs::File::open(&file)?;
     let mut buffer = [0u8; 1024 * 1024];
 
@@ -91,9 +92,9 @@ pub fn hash(file: String, id: u64, log: &Sender<Log>) -> Result<u32, Error> {
     let mut start_time = Instant::now();
     loop {
         count = scanned_file.read(&mut buffer)?;
-        hasher.update(&buffer[0..count]);
+        hasher.write(&buffer[0..count]);
         if start_time.elapsed().as_secs() > 5 {
-            let _ = log.send(Progress { id, path: file.to_string() });
+            log.send(Progress { id, path: file.to_string() }).expect("Error logging error!");
             start_time = Instant::now();
         }
 
@@ -101,5 +102,5 @@ pub fn hash(file: String, id: u64, log: &Sender<Log>) -> Result<u32, Error> {
             break;
         }
     }
-    Ok(hasher.finalize())
+    Ok(hasher.finish())
 }
